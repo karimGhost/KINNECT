@@ -1,103 +1,184 @@
-import Image from "next/image";
+"use client";
 
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ArrowRight, Search, Users, Heart } from "lucide-react";
+import Link from "next/link";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "@/lib/firebase"; // <-- our firebase setup
+import { useEffect } from "react";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import FamilySearch from "@/components/setup/FamilySearch";
+import FamilyPendingPage from "@/components/FamilyPages/FamilyPendingPage";
+import FamilyFeedPage from "@/components/FamilyPages/FamilyFeedPage";
+import { useAuth } from "@/hooks/useAuth";
+import { doc, getDoc } from "firebase/firestore";
+import Spinner from "@/components/Animations/spiner";
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [ loading] = useAuthState(auth);
+  const router = useRouter();
+  const { user,userData, setUserData} = useAuth()
+  
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+
+ const handleLogout = async () => {
+    try {
+
+      await signOut(auth);
+      router.push("/"); // or home, wherever you want messages dark News video
+      // clearUserCache()
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+
+    if(user){
+
+    router.push("/dashboard")
+  }
+   if( loading){
+    return <Spinner />
+  
+   }
+
+
+
+ 
+  
+ 
+
+if(!user)
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Header */}
+      <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-headline font-bold text-primary">
+          ♡  Kinnect
+          </h1>
+          <nav>
+            {!user ? (
+              <>
+                <Button asChild variant="ghost">
+                  <Link href="/login">Log In</Link>
+                </Button>
+                <Button asChild className="ml-2">
+                  <Link href="/signup">
+                    Get Started <ArrowRight className="ml-2" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+
+              <>
+               <Button onClick={handleLogout}  variant="ghost">
+                  sign out 
+                </Button>
+
+              <Button asChild>
+                <Link href="/dashboard">Go to Dashboard</Link>
+              </Button>
+              </>
+              
+            )}
+          </nav>
         </div>
+      </header>
+
+      {/* Hero Section */}
+      <main className="flex-grow">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 text-center py-20 sm:py-32">
+          <h2 className="text-4xl md:text-6xl font-headline font-bold tracking-tight leading-tight">
+            Rediscover Your Roots, <br /> Reconnect Your Family.
+          </h2>
+          <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
+            Kinnect is a private space for your family to share stories,
+            preserve history, and find lost connections. Build your legacy
+            together.
+          </p>
+          <div className="mt-8">
+            <Button asChild size="lg">
+              <Link href={!user ? "/signup" : "/dashboard"}>
+                {user ? "Go to Dashboard" : "Create Your Family Space"}{" "}
+                <ArrowRight className="ml-2" />
+              </Link>
+            </Button>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="bg-secondary/50 py-20">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-8">
+            <Card className="text-center animate-in fade-in-50 slide-in-from-bottom-10 duration-700">
+              <CardHeader>
+                <div className="mx-auto bg-primary/10 rounded-full p-3 w-fit">
+                  <Users className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="font-headline mt-4">
+                  Private Family Hub
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  A secure feed for your family to share updates, photos, and
+                  memories away from public social media.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center animate-in fade-in-50 slide-in-from-bottom-10 duration-700 delay-150">
+              <CardHeader>
+                <div className="mx-auto bg-primary/10 rounded-full p-3 w-fit">
+                  <Search className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="font-headline mt-4">
+                  Lost Family Finder
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                 suggestions for similar family names and origins,
+                  helping you uncover new branches of your tree.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center animate-in fade-in-50 slide-in-from-bottom-10 duration-700 delay-300">
+              <CardHeader>
+                <div className="mx-auto bg-primary/10 rounded-full p-3 w-fit">
+                  <Heart className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="font-headline mt-4">
+                  Preserve Your Legacy
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Create detailed profiles and collaboratively build a rich
+                  tapestry of your family's history for generations to come.
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-muted-foreground">
+        <p>&copy; {new Date().getFullYear()} Kinnect. All rights reserved.</p>
       </footer>
     </div>
   );
 }
+function setDataLoading(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
+
