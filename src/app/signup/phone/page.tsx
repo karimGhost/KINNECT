@@ -32,46 +32,46 @@ const {toast} = useToast();
   }
 };
   // Step 1: send OTP
-  const handleSendOtp = async () => {
-    try {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: "invisible",
-        });
-      }
-      const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
-      setConfirmResult(confirmation);
+  // const handleSendOtp = async () => {
+  //   try {
+  //     if (!window.recaptchaVerifier) {
+  //       window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+  //         size: "invisible",
+  //       });
+  //     }
+  //     const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+  //     setConfirmResult(confirmation);
      
-       toast({
-      title: "OTP",
-      description: "OTP sent!",
-      variant:"default"
-    });  
+  //      toast({
+  //     title: "OTP",
+  //     description: "OTP sent!",
+  //     variant:"default"
+  //   });  
   
-    } catch (err: any) {
-    toast({
-      title: " failed",
-      description: getFriendlySignupError(err.code),
-      variant: "destructive",
-    });    }
-    }
-  };
+  //   } catch (err: any) {
+  //   toast({
+  //     title: " failed",
+  //     description: getFriendlySignupError(err.code),
+  //     variant: "destructive",
+  //   });    }
+  //   }
+  // };
 
   // Step 2: verify OTP
-const handleVerifyOtp = async () => {
-  try {
-    const result = await confirmResult.confirm(otp);
+// const handleVerifyOtp = async () => {
+//   try {
+//     const result = await confirmResult.confirm(otp);
 
-    const userDoc = await getDoc(doc(db, "users", result.user.uid));
-    if (!userDoc.exists()) {
-      router.push("/signup/extra");
-    } else {
-      router.push("/dashboard");
-    }
-  } catch (err: any) {
-    alert("Invalid OTP");
-  }
-};
+//     const userDoc = await getDoc(doc(db, "users", result.user.uid));
+//     if (!userDoc.exists()) {
+//       router.push("/signup/extra");
+//     } else {
+//       router.push("/dashboard");
+//     }
+//   } catch (err: any) {
+//     alert("Invalid OTP");
+//   }
+// };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -103,7 +103,7 @@ const handleVerifyOtp = async () => {
 
           {!confirmResult ? (
             <Button
-              onClick={handleSendOtp}
+              // onClick={handleSendOtp}
               className="w-full flex items-center justify-center gap-2"
             >
               <Phone size={18} /> Send OTP
@@ -115,7 +115,8 @@ const handleVerifyOtp = async () => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
               />
-              <Button onClick={handleVerifyOtp} className="w-full">
+              {/* onClick={handleVerifyOtp} */}
+              <Button  className="w-full">
                 Verify OTP
               </Button>
             </div>
