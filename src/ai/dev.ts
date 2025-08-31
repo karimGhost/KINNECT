@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/lost-family-finder.ts';
+import '@/ai/flows/intelligent-moderator-suggest-actions.ts';
+import '@/ai/flows/intelligent-moderator-analyze-content.ts';

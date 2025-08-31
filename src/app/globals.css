@@ -68,6 +68,26 @@
   }
 }
 
+
+@layer utilities {
+  .scrollbar-custom {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: theme(colors.primary.DEFAULT) transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background-color: theme(colors.primary.DEFAULT);
+    border-radius: 9999px;
+  }
+}
+
+
 @keyframes fill-heart {
   0% { transform: translateY(100%); }
   50% { transform: translateY(0%); }
@@ -88,3 +108,5 @@
   stroke: white;
   animation: outline-sync 2s infinite ease-in-out;
 }
+
+

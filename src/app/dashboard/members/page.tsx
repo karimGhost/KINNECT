@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Check, X } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { useEffect, useState } from "react";
+import { Key, useEffect, useState } from "react";
 import { collection, query, where, getDocs, updateDoc, arrayUnion, doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { User } from "@/types";
@@ -20,7 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
-import { DialogHeader } from "@/components/ui/dialog";
+import { DialogFooter, DialogHeader } from "@/components/ui/dialog";
 
 import { useToast } from "@/hooks/use-toast";
 
@@ -54,11 +54,15 @@ const MemberCard = ({ user, keyd }: { user: User, keyd: string }) => (
 
 
 const PendingRequestCard = ({ user, keyd, acceptRequest, reject, showConfirmDialog, setShowConfirmDialog, setAdding, setRemoving, Removing,Adding,
- }: { user: User,
+ }: { user: any,
    keyd: string, acceptRequest: any, reject: any, showConfirmDialog:any, setShowConfirmDialog:any , setAdding: any, setRemoving:any, Removing: any,Adding:any
 }) => (
-  <div key={keyd}  className="flex items-center justify-between p-4 border-b last:border-b-0 animate-in fade-in-50 duration-500">
-    <div  className="flex items-center gap-4">
+ 
+ 
+ 
+ <div key={keyd}  className="flex items-center justify-between p-4 border-b last:border-b-0 animate-in fade-in-50 duration-500">
+
+  {   showConfirmDialog ? "" :   <> <div  className="flex items-center gap-4">
       <Avatar className="h-12 w-12">
         <AvatarImage
           src={user.avatarUrl}
@@ -72,49 +76,99 @@ const PendingRequestCard = ({ user, keyd, acceptRequest, reject, showConfirmDial
         <p className="text-sm text-muted-foreground">Wants to join the family</p>
       </div>
     </div>
-    <div className="flex gap-2">
-      <Button
+   
+ <div className="flex gap-2">
+      {/* <Button
             onClick={() =>{setAdding(false); setRemoving(true), setShowConfirmDialog(true)}}
         size="icon"
         variant="outline"
         className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive"
       >
         <X className="h-4 w-4" />
-      </Button>
-      <Button
-      onClick={() =>{setRemoving(false); setAdding(true);  setShowConfirmDialog(true)}}
+      </Button> */}
+     <Button
+      onClick={() =>{setShowConfirmDialog(true)}}
         size="icon"
         className="bg-accent text-accent-foreground hover:bg-accent/90"
       >
-        <Check className="h-4 w-4" />
+      View 
       </Button>
 
 
     </div>
-
-    <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-      <DialogContent>
+</>
+}
+     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle> Confirm!</DialogTitle>
+          <DialogTitle>Join Request</DialogTitle>
           <DialogDescription>
-     {Adding ?  `confirm adding ${user?.fullName} to family?` : `confirm Removing ${user.fullName}` }
+            Review details of {user.fullName}&apos;s request to join the family.
           </DialogDescription>
         </DialogHeader>
-    
-        <div className="flex justify-end gap-2">
+
+        <div className="space-y-3 text-sm">
+          <p>
+            <b>Name:</b> {user.fullName}
+          </p>
+          {user.country && (
+            <p>
+              <b>Country:</b> {user.country}
+            </p>
+          )}
+          {user.continent && (
+            <p>
+              <b>Continent:</b> {user.continent}
+            </p>
+          )}
+          {user.requestMessage && (
+            <div>
+              <b>Message:</b>
+              <p className="mt-1 p-2 border rounded bg-muted">
+                {user.requestMessage}
+              </p>
+            </div>
+          )}
+
+          {user.images && user.images.length > 0 && (
+            <div>
+              <b>Attached Images:</b>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {user.images.map((url: string | undefined, idx: Key | null | undefined) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt="request attachment"
+                    className="w-24 h-24 object-cover rounded-md border"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setShowConfirmDialog(false)}>
             Cancel
           </Button>
           <Button
-            variant="secondary"
+            variant="ghost"
+       onClick={() =>{setAdding(false); setRemoving(true), setShowConfirmDialog(true); reject(user?.familyId, user.id, user.uid, user.fullName) }}
+
+          >
+            Reject
+          </Button>
+
+          <Button
+            variant="ghost"
             onClick={() => {
-Adding ?   acceptRequest(user?.familyId,user.id, user.uid, user.fullName ) : reject(user?.familyId, user.id, user.uid, user.fullName) ;
+  acceptRequest(user?.familyId,user.id, user.uid, user.fullName ) ;
               setShowConfirmDialog(false);
             }}
           >
             Confirm 
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   </div>
@@ -148,6 +202,10 @@ const route = useRouter()
 
 
  async function rejectRequest(familyId: string, requestId: string, userId: string,username:string) {
+
+ const confirm = window.confirm(`Reject ${username}'s request to join this family?`);
+  if (!confirm) return;
+
   try {
  
     // 2️⃣ Update user profile → approved + linked
@@ -275,8 +333,8 @@ const route = useRouter()
             <CardContent className="p-0">
               {pendingMembers ? (
                 pendingMembers.map((member) => (
-                                <div key={member.id} style={{cursor:"pointer"}} onClick={() => route.push(`/dashboard/profile/${member.uid}`)}>
-
+                                <div key={member.id} style={{cursor:"pointer"}} >
+{/* onClick={() => route.push(`/dashboard/profile/${member.uid}`)} */}
 
 
                   <PendingRequestCard toast={toast} setAdding={setAdding} setRemoving={setRemoving} Removing={Removing} Adding={Adding}

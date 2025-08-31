@@ -1,4 +1,4 @@
-""
+
 import {
   SidebarProvider,
   Sidebar,
@@ -11,12 +11,15 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, User, Users, Compass, Heart, LogOut } from "lucide-react";
+import { Home, User, Users, Compass, Heart, LogOut, GroupIcon } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserById } from "@/lib/data";
 import UserDP from "./UserDP";
 import PendingList from "@/components/setup/PendingList";
+import ChatSidebar from "@/components/chat/chat-sidebar";
+import IsChat from "@/components/chat/IsChat";
+
 // import { useRouter } from "next/navigation";
 export default function DashboardLayout({
   children,
@@ -87,6 +90,24 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
+
+
+  <SidebarMenuItem>
+
+              <SidebarMenuButton asChild tooltip="Discover">
+                <Link  href="/dashboard/Chat">
+                <GroupIcon/>
+                  <span>FamilyChat</span>
+                </Link>
+              </SidebarMenuButton>
+         <IsChat/>
+
+             
+
+
+            </SidebarMenuItem>
+
 
             <SidebarMenuItem>
 

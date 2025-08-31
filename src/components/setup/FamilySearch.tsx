@@ -1,4 +1,4 @@
-"use "
+"use client";
 import { useEffect,useRef, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -28,8 +28,11 @@ import {
   DialogTitle,
   DialogFooter,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import dynamic from "next/dynamic";
+import { Textarea } from "../ui/textarea";
+import { Label } from "../ui/label";
 
 // Load Globe only on the client
 const Globe = dynamic(() => import("react-globe.gl"), {
@@ -43,6 +46,8 @@ const Globe = dynamic(() => import("react-globe.gl"), {
 export default function FamilySearch({ onFamilyCreated }: { onFamilyCreated: () => void }) {
    const [mounted, setMounted] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<any>(null);
+  const [requestImages, setRequestImages] = useState<File[]>([])
+
 
   const [user] = useAuthState(auth);
   const [continent, setContinent] = useState("");
@@ -55,7 +60,7 @@ export default function FamilySearch({ onFamilyCreated }: { onFamilyCreated: () 
   const [checked, setChecked] = useState(false);
   const router = useRouter();
   const [ethnicity, setEthnicity] = useState("");
-
+const [requestMessage,setRequestMessage] = useState("")
 // inside your DashboardPage component:
 const globeRef = useRef<any>(null);
 const [playPing] = useSound("/sounds/ping.mp3", { volume: 0.25 }); // subtle ping sound
@@ -88,7 +93,86 @@ useEffect(() => {
     }
   };
 
+     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setRequestImages([...requestImages, ...Array.from(e.target.files)])
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setRequestImages(requestImages.filter((_, i) => i !== index))
+  }
+
+
   
+  const handleJoin = async (
+  familyId: string
+) => {
+  setLoading(true);
+if(!user) return;
+  try {
+    // 1. Upload images to Cloudinary and collect URLs
+    let imageUrls: string[] = [];
+
+    if (requestImages.length > 0) {
+      const uploads = requestImages.map(async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        const data = await res.json();
+        return data.secure_url; // Cloudinary gives back the image URL
+      });
+
+      imageUrls = await Promise.all(uploads);
+    }
+
+    // 2. Save request to Firestore
+    const fam = familyId;
+    const reqRef = collection(db, "families", fam, "requests");
+    await addDoc(reqRef, {
+      userId: user?.uid,
+      status: "pending",
+      requestMessage,
+      images: imageUrls, // ✅ store uploaded Cloudinary URLs here
+      requestedAt: new Date(),
+    });
+
+   
+
+    // 3. Update user doc
+    await setDoc(
+      doc(db, "users", user?.uid),
+      {
+        uid: user?.uid,
+        country: country.toLowerCase(),
+        continent: continent.toLowerCase(),
+        familyId: fam,
+        approved: false,
+      },
+      { merge: true }
+    );
+
+
+
+
+    onFamilyCreated();
+  } catch (err) {
+    console.error("Error sending join request:", err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+
 
   const handleCreateOrJoin = async (familyId: any) => {
     if (!user) return;
@@ -138,33 +222,12 @@ useEffect(() => {
       // Request to join
 
 
-      const fam = familyId;
-      const reqRef = collection(db, "families", fam, "requests");
-      await addDoc(reqRef, {
-        userId: user.uid,
-        status: "pending",
-        requestedAt: new Date(),
-      });
-
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          uid: user.uid,
-          country:  country.toLowerCase(),
-          continent:  continent.toLowerCase() ,
-          familyId: fam.id,
-          approved: false,
-        },
-        { merge: true }
-      );
-    }
-
-    setLoading(false);
-    onFamilyCreated();
+ handleJoin(familyId)
 
     // alert("Done! Either created family or sent join request.");
   };
 
+}
   const continentOptions = [
   { value: "Africa", label: "Africa" },
   { value: "Asia", label: "Asia" },
@@ -402,7 +465,7 @@ color:"white",
         {/* Check button */}
         <Button
           onClick={handleCheckFamily}
-          disabled={loading || !familyName}
+          disabled={loading || !familyName || !country || !continent || !City || !ethnicity }
           className="w-full"
         >
           {loading ? "🌍 Searching Universe..." : "Check Family Existence"}
@@ -453,9 +516,9 @@ color:"white",
     {families.length > 0 ? (
       <div className="space-y-2">
 <p className="text-sm text-muted-foreground">
-  {families.find((i) => i.continent === continent) 
+  {families.find((i) => i.continent !== continent) 
     ? `No family found with that exact name in ${country}. `
-    : families.find((i) => i.country === country) 
+    : families.find((i) => i.country !== country) 
     ? `No family found with that exact name in ${country}. `
     : ""}
 
@@ -509,66 +572,136 @@ color:"white",
             </div>
           </div>
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                variant="secondary"
-                onClick={() => setSelectedFamily(fam)}
-              >
-                View Family
-              </Button>
-            </DialogTrigger>
-            {selectedFamily?.familyId === fam.familyId && (
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{fam.familyName}</DialogTitle>
-                  <DialogDescription>
-                    Details about this family.
-                  </DialogDescription>
-                </DialogHeader>
+         <Dialog>
+  <DialogTrigger asChild>
+    <Button
+      variant="secondary"
+      onClick={() => setSelectedFamily(fam)}
+    >
+      View Family
+    </Button>
+  </DialogTrigger>
 
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <b>Country:</b> {fam.country}
-                  </p>
-                  <p>
-                    <b>Continent:</b> {fam.continent}
-                  </p>
-                  <p>
-                    <b>Region:</b> {fam.Region || "N/A"}
-                  </p>
-                  <p>
-                    <b>City:</b> {fam.City || "N/A"}
-                  </p>
-                  <p>
-                    <b>Ethnicity:</b> {fam.ethnicity || "N/A"}
-                  </p>
-                  <p>
-                    <b>Created:</b>{" "}
-                    {fam.createdAt
-                      ? new Date(fam.createdAt.seconds * 1000).toDateString()
-                      : "N/A"}
-                  </p>
-                  <p>
-                    <b>Members:</b> {fam.members?.length || 0}
-                  </p>
-                </div>
+  {selectedFamily?.familyId === fam.familyId && (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{fam.familyName}</DialogTitle>
+        <DialogDescription>
+          Details about this family.
+        </DialogDescription>
+      </DialogHeader>
 
-                <DialogFooter>
-                  <Button
-                    onClick={() => handleCreateOrJoin(fam.familyId)}
-                    className="w-full"
+      <div className="space-y-2 text-sm">
+        <p>
+          <b>Country:</b> {fam.country}
+        </p>
+        <p>
+          <b>Continent:</b> {fam.continent}
+        </p>
+        <p>
+          <b>Region:</b> {fam.Region || "N/A"}
+        </p>
+        <p>
+          <b>City:</b> {fam.City || "N/A"}
+        </p>
+        <p>
+          <b>Ethnicity:</b> {fam.ethnicity || "N/A"}
+        </p>
+        <p>
+          <b>Created:</b>{" "}
+          {fam.createdAt
+            ? new Date(fam.createdAt.seconds * 1000).toDateString()
+            : "N/A"}
+        </p>
+        <p>
+          <b>Members:</b> {fam.members?.length || 0}
+        </p>
+      </div>
+
+      <DialogFooter>
+        {/* Nested Dialog for Request to Join */}
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              Request to Join
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Request to Join {fam.familyName}</DialogTitle>
+              <DialogDescription>
+                Write a short message to send with your request.
+              </DialogDescription>
+            </DialogHeader>
+
+            <Textarea
+              className="w-full p-2 border rounded-md text-sm"
+              placeholder="Write your request message..."
+              rows={4}
+              value={requestMessage}
+              onChange={(e) => setRequestMessage(e.target.value)}
+
+            />
+
+ <div className="space-y-2">
+    <Label
+    htmlFor="request-images"
+    className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer bg-primary/10 text-primary hover:bg-primary/20"
+  >
+    📎 Attach Image
+  </Label>
+          <Input
+          id="request-images"
+            type="file"
+            accept="image/*"
+
+            multiple
+            onChange={handleImageChange}
+            className="block hidden  w-full text-sm text-muted-foreground file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 hover:file:bg-primary/20"
+          />
+
+          {/* Preview uploaded images */}
+          {requestImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {requestImages.map((file, index) => (
+                <div key={index} className="relative w-20 h-20">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="preview"
+                    className="w-full h-full object-cover rounded-md"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs"
                   >
-                    Request to Join
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            )}
-          </Dialog>
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+            <DialogFooter>
+ <DialogClose asChild>
+        <Button type="button" variant="secondary">Cancel</Button>
+      </DialogClose>              <Button onClick={() => handleCreateOrJoin(fam.familyId)}
+ className="bg-primary text-white">
+                Send Request
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+
+      </DialogFooter>
+    </DialogContent>   )}
+    </Dialog>
         </div>
       ))}
     </div>
-         
+
         </div>
       </div>
     ) : (
@@ -588,6 +721,8 @@ color:"white",
     )}
   </>
 )}
+
+
 
       </div>
     </div>

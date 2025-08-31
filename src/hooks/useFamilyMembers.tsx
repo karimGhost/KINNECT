@@ -36,15 +36,29 @@ export function useFamilyMembers(familyId: string) {
         return;
       }
 
-      const users = await Promise.all(
-        snap.docs.map(async (reqDoc) => {
-          const { userId } = reqDoc.data();
-          const uDoc = await getDoc(doc(db, "users", userId));
-          return uDoc.exists()
-            ? ({ id: reqDoc.id, ...uDoc.data() } as User)
-            : null;
-        })
-      );
+    const users = await Promise.all(
+  snap.docs.map(async (reqDoc) => {
+    const { userId, images = [], requestMessage = "", requestedAt } = reqDoc.data();
+    const uDoc = await getDoc(doc(db, "users", userId));
+
+    if (!uDoc.exists()) return null;
+
+    return {
+      id: reqDoc.id,             // request document id
+      userId,                    // requester uid
+      requestMessage,
+      images,                    // array of Cloudinary URLs
+      requestedAt: requestedAt?.toDate ? requestedAt.toDate() : requestedAt,
+      ...uDoc.data(),            // spread user profile (name, country, etc.)
+    } as User & {
+      id: string;
+      userId: string;
+      requestMessage: string;
+      images: string[];
+      requestedAt: Date | null;
+    };
+  })
+);
 
       setRequests(users.filter(Boolean) as User[]);
     });

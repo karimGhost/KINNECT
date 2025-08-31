@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, getDoc } from "firebase/firestore";
-
+import ChatLayout from '@/components/chat/chat-layout';
 import FamilySearch from "@/components/setup/FamilySearch";
 import FamilyFeedPage from "@/components/FamilyPages/FamilyFeedPage";
 import FamilyPendingPage from "@/components/FamilyPages/FamilyPendingPage";
@@ -57,5 +57,9 @@ const {user, userData, setUserData, loading} = useAuth()
     return <FamilyPendingPage familyId={userData.familyId} />;
   }
 
-  return <FamilyFeedPage />;
+  return  <FamilyFeedPage />
+  
+  
+
 }
+  // <FamilyFeedPage />;
