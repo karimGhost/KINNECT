@@ -14,10 +14,11 @@ interface MessageListProps {
   messages: Message[]
   currentUser: User
   onReply: (msg: Message) => void
+  containerRefs: any
 }
 
-export default function MessageList({ messages, currentUser, onReply }: MessageListProps) {
-  const { userData } = useAuth()
+export default function MessageList({ messages, currentUser, onReply, containerRefs }: MessageListProps) {
+  const { userData } = useAuth();
    const containerRef = useRef<HTMLDivElement | null>(null)
   
   const familyId = userData?.familyId
@@ -60,27 +61,30 @@ console.log("messages",messages)
 
   // Scroll listener
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-        console.log("scroll",  container.scrollHeight )
+  const container = containerRefs.current
+  if (!container) return
 
-    const handleScroll = () => {
-      const threshold = 150
-      const isNearBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight < threshold
-        console.log("scroll",  "fff" )
-        console.log("scroll",  container.scrollHeight )
+  const handleScroll = () => {
+    const threshold = 150
+    const distance =
+      container.scrollHeight - container.scrollTop - container.clientHeight
 
-      setShowScrollButton(!isNearBottom)
-      if (isNearBottom) {
-        setNewMessagePulse(false)
-        setUnreadCount(0)
-      }
+    console.log("scrollTop:", container.scrollTop, "distance:", distance)
+
+    const isNearBottom = distance < threshold
+    setShowScrollButton(!isNearBottom)
+
+    if (isNearBottom) {
+      setNewMessagePulse(false)
+      setUnreadCount(0)
     }
+  }
 
-    container.addEventListener("scroll", handleScroll)
-    return () => container.removeEventListener("scroll", handleScroll)
-  }, [containerRef])
+  container.addEventListener("scroll", handleScroll)
+  handleScroll() // run once to init
+
+  return () => container.removeEventListener("scroll", handleScroll)
+  }, [containerRefs])
 
   const scrollToBottom = () => {
     endRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -107,16 +111,17 @@ const scrollToMessage = (id: string) => {
 }
 
   return (
-    <div className="relative h-full"  >
-   <div
- ref={containerRef} 
- style={{ scrollbarWidth:"thin" , height:"100vh", scrollbarGutter:"stable", msScrollbarBaseColor:"black", scrollbarColor:"black"}}
+<div className="relative h-full ">
+  <div
+    ref={containerRef}
+    className="space-y-6 overflow-y-auto  pr-2 "
+    style={{
+      scrollbarWidth: "thin",
+      scrollbarGutter: "stable",
+      marginTop:"100px", marginBottom:"100px"
+    }}
 
-        className="space-y-6 mt-6 overflow-y-scroll  pr-2 h-screen overflow-y-scroll pr-2 scrollbar-custom"
-      >
-        <div   style={{ marginTop: "150px", marginBottom: "100px"  }}
->
-
+  >
 
         
        {messages?.filter((msg) => !msg.replyTo).map((message) => {
@@ -176,7 +181,7 @@ const scrollToMessage = (id: string) => {
           )}
         </button>
       )}
-    </div></div>
+    </div>
   )
 }
 const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(

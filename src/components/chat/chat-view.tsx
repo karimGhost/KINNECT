@@ -1,11 +1,12 @@
 "use client"
 import { useAuth } from "@/hooks/useAuth";
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import type { Message, User } from "@/lib/types"
 import MessageList from "./message-list"
 import MessageInput from "./message-input"
 import ChatHeader from "./chat-header"
+import { useRouter } from "next/navigation";
 
 interface ChatViewProps {
   messages: Message[]
@@ -15,32 +16,37 @@ interface ChatViewProps {
 
 export default function ChatView({ messages, currentUser, containerRef }: ChatViewProps) {
   const [replyTo, setReplyTo] = useState<Message | null>(null)
-  const { userData } = useAuth();
+  const { userData, user } = useAuth();
+
+   const containerRefs = useRef<HTMLDivElement | null>(null)
+
   if (!userData?.familyId) return <p>No family joined yet.</p>;
 
   return (
-    <div className="flex flex-col " >
-      <ChatHeader group={{ id: userData.familyId, avatar: "👨‍👩‍👧‍👦", members: [] }} />
-<div >
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <MessageList
-        containerRef={containerRef}
-          messages={messages}
-          currentUser={currentUser}
-          onReply={(msg) => setReplyTo(msg)}
-        />
+<div className="flex flex-col h-[100dvh]  h-screen bg-background max-w-2xl mx-auto w-full">
+      {/* Chat Header */}
+      <ChatHeader group={{ id: "famId", avatar: "👨‍👩‍👧‍👦", members: [] }} />
+
+  {/* Scrollable messages */}
+  <div     ref={containerRefs}
+ className="flex-1 overflow-y-auto scrollbar-custom h-full  p-4 md:p-6">
+    <MessageList
+     
+      messages={messages}
+      currentUser={currentUser}
+      onReply={(msg) => setReplyTo(msg)}
+      containerRefs={containerRefs}
+    />
       </div>
 
-      {/* Input */}
-      <div className="p-2 border-t bg-background fixed bottom-0  max-w-2xl mx-auto w-full">
-        <MessageInput
-          currentUser={currentUser}
-          replyTo={replyTo}
-          onCancelReply={() => setReplyTo(null)}
-          onSent={() => setReplyTo(null)} // clear reply after sending
-        />
-      </div>
-
+      {/* Input (always visible, not inside scroll) */}
+      <div className="p-2 border-t bg-background">
+    <MessageInput
+      currentUser={currentUser}
+      replyTo={replyTo}
+      onCancelReply={() => setReplyTo(null)}
+      onSent={() => setReplyTo(null)}
+    />
       </div>
     </div>
   )

@@ -25,7 +25,7 @@ const {userData} = useAuth();
   return (
     <>
 
-      <div style={{zIndex:"10"}} className="flex items-center gap-4 border-b p-4 fixed top-0  bg-background max-w-2xl mx-auto w-full   ">
+      <div style={{zIndex:"10"}} className="flex items-center gap-4 border-b p-4 fixed top-0  bg-background  mx-auto w-full   ">
         <div className="flex items-center gap-3 flex-1">
           <Avatar>
             <AvatarFallback className="bg-secondary text-lg">{group.avatar}</AvatarFallback>
