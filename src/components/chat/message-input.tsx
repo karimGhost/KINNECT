@@ -24,6 +24,11 @@ export default function MessageInput({
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [ user] = useAuthState(auth);
+
+
+    
+
+
   const handleSend = async () => {
     if ((!text.trim() && !file) || !userData?.familyId) return
 
@@ -132,6 +137,7 @@ export default function MessageInput({
         {/* Text Input */}
         <input
           value={text}
+          
           onChange={(e) => setText(e.target.value)}
           placeholder="Write a message..."
           className="flex-1 px-3 py-2 border rounded-lg bg-background text-foreground"

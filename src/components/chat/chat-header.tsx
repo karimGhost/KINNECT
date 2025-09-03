@@ -8,6 +8,7 @@ import VideoCallDialog from './video-call-dialog';
 import LocationDialog from './location-dialog';
 import { useFamilyMembers } from '@/hooks/useFamilyMembers';
 import { useAuth } from '@/hooks/useAuth';
+import { SidebarInset, SidebarTrigger } from '../ui/sidebar';
 
 interface ChatHeaderProps {
   group: Group;
@@ -27,6 +28,8 @@ const {userData} = useAuth();
 
       <div style={{zIndex:"10"}} className="flex items-center gap-4 border-b p-4 fixed top-0  bg-background  mx-auto w-full   ">
         <div className="flex items-center gap-3 flex-1">
+                            <SidebarTrigger />
+
           <Avatar>
             <AvatarFallback className="bg-secondary text-lg">{group.avatar}</AvatarFallback>
           </Avatar>

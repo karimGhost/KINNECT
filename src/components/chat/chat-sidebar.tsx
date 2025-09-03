@@ -9,7 +9,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupLabel
+  SidebarGroupLabel,
+  SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Settings, BotMessageSquare } from 'lucide-react';
@@ -48,8 +49,10 @@ const {userData} = useAuth();
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))} */}
+                
              <SidebarMenuItem>
                 <SidebarMenuButton >
+
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="bg-secondary text-sm">{groups[0].avatar}</AvatarFallback>
                   </Avatar>

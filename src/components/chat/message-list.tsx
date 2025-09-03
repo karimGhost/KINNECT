@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { doc, Timestamp, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { formatDistanceToNow } from "date-fns"
+import LinkPreview from "./LinkPreview";
 
 interface MessageListProps {
   messages: Message[]
@@ -20,7 +21,7 @@ interface MessageListProps {
 export default function MessageList({ messages, currentUser, onReply, containerRefs }: MessageListProps) {
   const { userData } = useAuth();
    const containerRef = useRef<HTMLDivElement | null>(null)
-  
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const familyId = userData?.familyId
   const [showScrollButton, setShowScrollButton] = useState(false)
   const [newMessagePulse, setNewMessagePulse] = useState(false)
@@ -110,6 +111,8 @@ const scrollToMessage = (id: string) => {
   }
 }
 
+
+
   return (
 <div className="relative h-full ">
   <div
@@ -138,6 +141,7 @@ const scrollToMessage = (id: string) => {
         onReply={onReply}
         onReact={handleReact}
         onScrollTo={scrollToMessage}
+        setPreviewUrl={setPreviewUrl}
       />
 
       {replies.length > 0 && (
@@ -159,6 +163,22 @@ const scrollToMessage = (id: string) => {
     </div>
   )
 })}
+
+
+     {previewUrl && (
+  <div
+    onClick={() => setPreviewUrl(null)}
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+  >
+    {previewUrl.endsWith(".mp4") || previewUrl.includes("video") ? (
+      <video src={previewUrl} controls autoPlay className="max-h-full max-w-full rounded" />
+    ) : (
+      <img src={previewUrl} alt="preview" className="max-h-full max-w-full rounded" />
+    )}
+  </div>
+     
+    )
+  }
 
         <div ref={endRef} />
       </div>
@@ -185,7 +205,36 @@ const scrollToMessage = (id: string) => {
   )
 }
 const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
-  ({ message, isCurrentUser, onReply, onReact, onScrollTo, isReply }, ref) => {
+  ({ message, isCurrentUser, setPreviewUrl, onReply, onReact, onScrollTo, isReply }, ref) => {
+
+function extractUrl(text: string): string[] | null {
+  const match = text?.match(/(https?:\/\/[^\s.,!?")\]\}]+)/g);
+  return match ? match : null;
+}
+
+  const url = extractUrl(message.text);
+
+function linkify(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+  return text.split(urlRegex).map((part, i) =>
+    part.match(urlRegex) ? (
+      <a
+        key={i}
+        href={part}
+        className="text-black-100 underline break-words"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+
     return (
       <div
         ref={ref}
@@ -248,10 +297,12 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
             {message.fileUrl && message.type === "image" && (
               <Image
                 src={message.fileUrl}
+                    onClick={() => setPreviewUrl(message.fileUrl)}
                 alt="uploaded"
                 width={400}
                 height={300}
-                className="rounded-lg mb-2"
+                    className="w-full max-w-[75%] md:max-w-[400px] rounded-lg object-contain cursor-pointer rounded-lg mb-2"
+
               />
             )}
             {message.fileUrl && message.type === "video" && (
@@ -259,10 +310,22 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
                 src={message.fileUrl}
                 controls
                 className="rounded-lg mb-2 w-full max-w-sm"
+               
+
               />
             )}
-            {message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
 
+            
+
+            {message.text && 
+
+<>
+<p className="text-sm break-words whitespace-pre-wrap break-all">
+      {linkify(message.text)}
+</p>
+    {url ?  <LinkPreview url={url} /> : <></>}
+</>
+  }
             {/* Reactions */}
             {message.reactions && Object.keys(message.reactions).length > 0 && (
               <div className="flex gap-1 mt-2">
@@ -291,6 +354,9 @@ const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
             </div>
           </div>
         </div>
+
+
+        
       </div>
     )
   }
