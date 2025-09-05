@@ -877,7 +877,7 @@ if (changedTwice && updatedRecently) {
       </Card>
 
       {/* Notification Settings */}
-      <Card className="shadow-lg">
+      {/* <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Bell className="h-6 w-6 text-primary" /> Notification Settings</CardTitle>
           <CardDescription>Choose what activities you want to be notified about.</CardDescription>
@@ -910,13 +910,13 @@ if (changedTwice && updatedRecently) {
   Save Notifications
 </Button>
           </CardFooter>
-      </Card>
+      </Card> */}
 
 
 
       
       {/* Privacy Settings */}
-     <Card className="shadow-lg">
+     {/* <Card className="shadow-lg">
   <CardHeader>
     <CardTitle className="flex items-center gap-2">
       <Shield className="h-6 w-6 text-primary" /> Privacy Settings
@@ -977,7 +977,7 @@ if (changedTwice && updatedRecently) {
       Save Privacy Settings
     </Button>
   </CardFooter>
-</Card>
+</Card> */}
 
       {/* Appearance Settings */}
    <Card className="shadow-lg">

@@ -35,6 +35,9 @@ import {
 } from "@radix-ui/react-dialog";
 import { DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardHeader } from "@/components/DashboardHeader";
+import FamilyPendingPage from "@/components/FamilyPages/FamilyPendingPage";
+import FamilyProfile from "./FamilyProfile";
 
 // ✅ Single Member card
 const MemberCard = ({
@@ -86,10 +89,11 @@ const MemberCard = ({
     </div>
   </div>
 );
-
 // ✅ Request Card with full details
 const PendingRequestCard = ({
   user,
+  familyId,
+  familyName,
   keyd,
   acceptRequest,
   reject,
@@ -97,6 +101,8 @@ const PendingRequestCard = ({
   setShowConfirmDialog,
 }: {
   user: any;
+  familyId: string,
+  familyName: string,
   keyd: string;
   acceptRequest: any;
   reject: any;
@@ -185,12 +191,12 @@ const PendingRequestCard = ({
           </Button>
           <Button
             variant="destructive"
-            onClick={() => reject(user?.familyId, user.id, user.uid, user.fullName)}
+            onClick={() => reject(familyId,familyName, user.id, user.uid, user.fullName)}
           >
             Reject
           </Button>
           <Button
-            onClick={() => acceptRequest(user?.familyId, user.id, user.uid, user.fullName)}
+            onClick={() => acceptRequest(familyId,FamilyName, user.id, user.uid, user.fullName)}
           >
             Confirm
           </Button>
@@ -201,42 +207,128 @@ const PendingRequestCard = ({
 );
 
 export default function MembersPage() {
-  const { userData, user } = useAuth();
-  const { members, requests, loading } = useFamilyMembers(userData?.familyId);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const { toast } = useToast();
-  const route = useRouter();
+ const {userData, user} = useAuth();
+      const { members,requests, loading } = useFamilyMembers(userData?.familyId );
+const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+const [Adding,setAdding] = useState(false);
+const [Removing,setRemoving] = useState(false);
+const {toast} = useToast()
+//    useEffect(() => {
+// console.log("pendingMembers", requests.filter((m) => !m?.approved)) 
+//   },[requests])
+  // // Assume current
+const route = useRouter()
+
+  const familyName = members.length > 0 ? userData?.familyName || "Family" : "Family";
+
+
+/**
+ * Accept a pending family join request
+ * @param familyId string - family document ID
+ * @param requestId string - ID of the request doc inside families/{familyId}/requests
+ * @param userId string - UID of the user being accepted
+ */
+ 
+    //  
+// async function acceptFamilyRequest(familyId: string, requestId: string, userId: string, username:string, family:string) {
+
+
+ async function rejectRequest(familyId: string,familyName:string, requestId: string, userId: string,username:string) {
+  try {
+ 
+    // 2️⃣ Update user profile → approved + linked
+    const userRef = doc(db, "users", userId);
+    await setDoc(
+      userRef,
+      {
+        familyId: "",
+        approved: false,
+        inFamily: "", 
+        familyName:""
+      },
+      { merge: true }
+    );
+
+    // 3️⃣ Remove request from "requests" subcollection
+    const reqRef = doc(db, "families", familyId, "requests", requestId);
+    await deleteDoc(reqRef);
+ toast({
+      title: "Removed ",
+      description: `${username} rejected & removed from family ${familyName}`,
+      variant: "destructive",
+    }); 
+    // console.log(`✅ User ${userId} rejected & removed from family ${familyId}`);
+  } catch (err) {
+     toast({
+      title: "Error failed  ",
+      description: `removing ${username}  from ${familyName} Requests failed try again after sometime! `,
+      variant: "destructive",
+    }); 
+    // console.error("❌ rejecting  family request:", err);
+    throw err;
+  }
+} 
+
+
+ async function acceptFamilyRequest(familyId: string,familyName:string, requestId: string, userId: string, username:string) {
+  try {
+    // 1️⃣ Update family doc → add user to members
+    const familyRef = doc(db, "families", familyId);
+    await updateDoc(familyRef, {
+      members: arrayUnion(userId),
+    });
+
+    // 2️⃣ Update user profile → approved + linked
+    const userRef = doc(db, "users", userId);
+    await setDoc(
+      userRef,
+      {
+        familyId: familyId,
+        approved: true,
+        welcome: true,
+        familyName: familyName,
+        inFamily: familyId, // optional, since you had this field
+      },
+      { merge: true }
+    );
+
+    // 3️⃣ Remove request from "requests" subcollection
+    const reqRef = doc(db, "families", familyId, "requests", requestId);
+    await deleteDoc(reqRef);
+
+     toast({
+      title: "Added successfully ",
+      description: `${username} has been approved and  added to  ${familyName} family`,
+      variant: "default",
+    }); 
+    // console.log(`✅ User ${userId} approved & added to family ${familyId}`);
+  } catch (err) {
+      toast({
+      title: "Error adding ",
+      description: `Adding ${username} to   ${familyName} family failed please try again later!`,
+      variant: "default",
+    }); 
+    console.error("❌ Error accepting family request:", err);
+    throw err;
+  }
+}
 
   if (loading) {
     return <p className="p-6 text-center">Loading members...</p>;
   }
 
-  const familyName =
-    members.length > 0 ? userData?.familyName || "Family" : "Family";
 
   const approvedMembers = members.filter((m) => m?.approved);
   const pendingMembers = requests.filter((m) => !m?.approved);
 
-  const currentUserIsAdmin =
-    members.find((m) => m.AdminId === user?.uid) !== undefined;
+
+
+  const currentUserIsAdmin = members.find((m) => m.AdminId === user?.uid ) !== undefined;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* ✅ Family profile card */}
-      <Card className="flex items-center gap-4 p-4">
-        <Avatar className="h-16 w-16">
-          <AvatarImage src={userData?.familyAvatar} />
-          <AvatarFallback>
-            {familyName.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <h2 className="text-xl font-bold">{familyName}</h2>
-          <p className="text-sm text-muted-foreground">
-            {approvedMembers.length} members
-          </p>
-        </div>
-      </Card>
+     <FamilyProfile familyId={userData.familyId} approvedMembers={approvedMembers}/>
 
       <div className="grid md:grid-cols-2 gap-8 items-start mt-4">
         {/* ✅ Approved members */}
@@ -246,46 +338,51 @@ export default function MembersPage() {
             <CardDescription>Current family members</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            {approvedMembers.map((member) => (
-              <div
-                key={member.id}
-                style={{ cursor: "pointer" }}
-                onClick={() => route.push(`/dashboard/profile/${member.uid}`)}
-              >
-                <MemberCard
-                  keyd={member.id}
-                  user={member}
-                  isAdminView={currentUserIsAdmin}
-                  onRemove={() =>
-                    console.log("TODO remove", member.fullName)
-                  }
-                />
-              </div>
-            ))}
+         
+
+            <>
+  {/* Admins first */}
+  {approvedMembers
+    .filter((i) => i.isAdmin)
+    .map((member) => (
+                    <div key={member.id} style={{cursor:"pointer"}} onClick={() => route.push(`/dashboard/profile/${member.uid}`)}>
+
+                              <MemberCard  keyd={member.id} user={member} isAdminView={false} />
+      </div>
+
+    ))}
+
+  {/* Then normal members */}
+  {approvedMembers
+    .filter((i) => !i.isAdmin)
+    .map((member) => (
+ <div key={member.id} style={{cursor:"pointer"}} onClick={() => route.push(`/dashboard/profile/${member.uid}`)}>
+
+                              <MemberCard  keyd={member.id} user={member} isAdminView={false} />
+      </div>    ))}
+</>
           </CardContent>
         </Card>
 
-        {/* ✅ Pending requests */}
         {currentUserIsAdmin && (
           <Card className="bg-primary/5">
             <CardHeader>
-              <CardTitle>Pending Requests ({pendingMembers.length})</CardTitle>
-              <CardDescription>Approve or reject requests</CardDescription>
+              <CardTitle className="font-headline">
+                Pending Requests ({pendingMembers.length})
+              </CardTitle>
+              <CardDescription>Approve or reject requests to join.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              {pendingMembers.length > 0 ? (
+              {pendingMembers ? (
                 pendingMembers.map((member) => (
-                  <PendingRequestCard
-                    key={member.id}
-                    showConfirmDialog={showConfirmDialog}
-                    setShowConfirmDialog={setShowConfirmDialog}
-                    acceptRequest={() =>
-                      console.log("accept", member.fullName)
-                    }
-                    reject={() => console.log("reject", member.fullName)}
-                    user={member}
-                    keyd={member.id}
-                  />
+                                <div key={member.id} style={{cursor:"pointer"}} onClick={() => route.push(`/dashboard/profile/${member.uid}`)}>
+
+
+
+                  <PendingRequestCard familyId={userData.familyId} familyName={userData.familyName}
+   
+ showConfirmDialog={showConfirmDialog} setShowConfirmDialog={setShowConfirmDialog} acceptRequest={acceptFamilyRequest} reject={rejectRequest} keyd={member.id} user={member} />
+                  </div>
                 ))
               ) : (
                 <p className="p-6 text-center text-muted-foreground">

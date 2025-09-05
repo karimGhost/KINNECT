@@ -10,7 +10,7 @@ import { doc, Timestamp, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { formatDistanceToNow } from "date-fns"
 import LinkPreview from "./LinkPreview";
-
+import { formatMessageTime } from "./formatMessageTime"
 interface MessageListProps {
   messages: Message[]
   currentUser: User
@@ -127,42 +127,22 @@ const scrollToMessage = (id: string) => {
   >
 
         
-       {messages?.filter((msg) => !msg.replyTo).map((message) => {
-  const isCurrentUser = message.author.id === currentUser.id
-  const replies = getReplies(message.id)
-
-  console.log("reply", messages.filter((m) => m.replyTo === message.id));
-  return (
-    <div key={message.id} className="space-y-2">
-      <MessageBubble
-        ref={(el: HTMLDivElement | null) => (messageRefs.current[message.id] = el)}
-        message={message}
-        isCurrentUser={isCurrentUser}
-        onReply={onReply}
-        onReact={handleReact}
-        onScrollTo={scrollToMessage}
-        setPreviewUrl={setPreviewUrl}
-      />
-
-      {replies.length > 0 && (
-        <div className="ml-10 space-y-2 border-l pl-3">
-          {replies.map((reply) => (
-            <MessageBubble
-              key={reply.id}
-              ref={(el: HTMLDivElement | null) => (messageRefs.current[reply.id] = el)}
-              message={reply}
-              isCurrentUser={reply.author.id === currentUser.id}
-              onReply={onReply}
-              onReact={handleReact}
-              onScrollTo={scrollToMessage}
-              isReply
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      {messages
+  ?.sort((a, b) =>
+    (a.createdAt?.toMillis?.() ?? 0) - (b.createdAt?.toMillis?.() ?? 0)
   )
-})}
+  .map((message) => (
+    <MessageBubble
+      key={message.id}
+      ref={(el: HTMLDivElement | null) => (messageRefs.current[message.id] = el)}
+      message={message}
+      isCurrentUser={message.author.id === currentUser.id}
+      onReply={onReply}
+      onReact={handleReact}
+      onScrollTo={scrollToMessage}
+      setPreviewUrl={setPreviewUrl}
+    />
+))}
 
 
      {previewUrl && (
@@ -205,14 +185,15 @@ const scrollToMessage = (id: string) => {
   )
 }
 const MessageBubble = forwardRef<HTMLDivElement, BubbleProps>(
-  ({ message, isCurrentUser, setPreviewUrl, onReply, onReact, onScrollTo, isReply }, ref) => {
+  ({ message, isCurrentUser, setPreviewUrl, onReply, onReact, onScrollTo,reply,  isReply }, ref) => {
 
 function extractUrl(text: string): string[] | null {
   const match = text?.match(/(https?:\/\/[^\s.,!?")\]\}]+)/g);
   return match ? match : null;
 }
 
-  const url = extractUrl(message.text);
+  const url = extractUrl(message?.text);
+  const urL = extractUrl(message?.text);
 
 function linkify(text: string) {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -234,8 +215,137 @@ function linkify(text: string) {
   );
 }
 
+if(isReply){
+return(
+   <div
+        ref={ref}
+        className={cn(
+          "flex items-start gap-3 group",
+          isCurrentUser && "flex-row-reverse"
+        )}
+      >
+        {/* Avatar */}
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={reply.author.avatar} alt={reply.author.name} />
+          <AvatarFallback>{reply.author.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+
+        <div className="max-w-xs md:max-w-md lg:max-w-lg space-y-1">
+          {/* Author name (skip if current user) */}
+          {!isCurrentUser && (
+            <i className="text-xs"> {reply.author.name} –{" "}
+  {reply.createdAt &&
+    formatDistanceToNow(
+      reply.createdAt instanceof Timestamp
+        ? reply.createdAt.toDate()
+        : new Date(reply.createdAt),
+      { addSuffix: true }
+    )}</i>
+          )}
+           {isCurrentUser && (
+            <i className="text-xs">
+               {" "}
+  {reply.createdAt &&
+    formatDistanceToNow(
+      reply.createdAt instanceof Timestamp
+        ? reply.createdAt.toDate()
+        : new Date(reply.createdAt),
+      { addSuffix: true }  
+    )} 
+    {" - "}    you    </i>
+          
+          )}
+
+          <div
+            className={cn(
+              "rounded-xl p-3 text-sm relative",
+              isCurrentUser ? "bg-primary text-white" : "bg-card border"
+            )}
+          >
+            {/* Reply preview */}
+            {reply.replyTo && (
+              <div
+                onClick={() => onScrollTo(reply.replyTo)}
+                className="mb-2 px-2 py-1 text-xs rounded-md bg-muted/40 cursor-pointer hover:bg-muted/70 truncate"
+              >
+                ↩ Replying to{" "}
+               <span className="font-medium">{reply.replyAuthorName}</span>:{" "}
+    {reply.replyPreview}
+              </div>
+            )}
+
+            {/* Content */}
+            {reply.fileUrl && reply.type === "image" && (
+              <Image
+                src={reply.fileUrl}
+                    onClick={() => setPreviewUrl(reply.fileUrl)}
+                alt="uploaded"
+                width={400}
+                height={300}
+                    className="w-full max-w-[75%] md:max-w-[400px] rounded-lg object-contain cursor-pointer rounded-lg mb-2"
+
+              />
+            )}
+            {reply.fileUrl && reply.type === "video" && (
+              <video
+                src={reply.fileUrl}
+                controls
+                className="rounded-lg mb-2 w-full max-w-sm"
+               
+
+              />
+            )}
+
+            
+
+            {reply.text && 
+
+<>
+<p className="text-sm break-words whitespace-pre-wrap break-all">
+      {linkify(reply.text)}
+</p>
+    {urL ?  <LinkPreview url={urL} /> : <></>}
+</>
+  }
+            {/* Reactions */}
+            {reply.reactions && Object.keys(reply.reactions).length > 0 && (
+              <div className="flex gap-1 mt-2">
+                {Object.entries(reply.reactions).map(([uid, emoji]) => (
+                  <span
+                    key={uid}
+                    className="text-xs bg-white/20 rounded px-1 py-0.5"
+                  >
+                    {emoji}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Hover actions */}
+            <div className="absolute -bottom-1 right-0 opacity-0 group-hover:opacity-100 flex gap-2 transition">
+              <button onClick={() => onReply(reply)} className="text-xs">
+                💬
+              </button>
+              <button onClick={() => onReact(reply, "❤️")} className="text-xs">
+                ❤️
+              </button>
+              <button onClick={() => onReact(reply, "👍")} className="text-xs">
+                👍
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+        
+      </div>
+)
+}
 
     return (
+
+
+      
       <div
         ref={ref}
         className={cn(
@@ -281,6 +391,7 @@ function linkify(text: string) {
               isCurrentUser ? "bg-primary text-white" : "bg-card border"
             )}
           >
+
             {/* Reply preview */}
             {message.replyTo && (
               <div
@@ -315,7 +426,7 @@ function linkify(text: string) {
               />
             )}
 
-            
+         
 
             {message.text && 
 

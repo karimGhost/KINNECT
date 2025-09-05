@@ -388,7 +388,9 @@ color:"white",
        {/* Country Selector (filtered by continent) */}
          <Input
           placeholder="Family Name"
-          value={familyName}
+          value={!continent ? "Fill the above first !!" : familyName }
+            disabled={!continent}
+
           onChange={(e) => setFamilyName(e.target.value)}
         />
 <Select
@@ -396,7 +398,7 @@ color:"white",
   value={country ? { value: country, label: country } : null}
   onChange={(opt) => setCountry(opt?.value || "")}
   placeholder="Select Country"
-  isDisabled={!continent}
+  isDisabled={!continent || !familyName}
   
   className="text-black dark:text-white"
   classNamePrefix="react-select"
@@ -447,25 +449,32 @@ color:"white",
 />
 
  <Input
+  disabled={!continent || !familyName || !country}
+
           placeholder="City/State"
           value={City}
           onChange={(e) => setCity(e.target.value)}
         />
 
  <Input
+   disabled={!continent || !familyName || !country || !City}
+
           placeholder="enter Region"
           value={Region}
           onChange={(e) => setRegion(e.target.value)}
         />
 
-   <Input placeholder="Ethnicity" value={ethnicity} onChange={(e) => setEthnicity(e.target.value)} />
+   <Input
+      disabled={!continent || !familyName || !country || !City || !Region}
+
+   placeholder="Ethnicity" value={ethnicity} onChange={(e) => setEthnicity(e.target.value)} />
 
       
 
         {/* Check button */}
         <Button
           onClick={handleCheckFamily}
-          disabled={loading || !familyName || !country || !continent || !City || !ethnicity }
+          disabled={loading || !familyName || !country || !continent || !City || !ethnicity || !Region }
           className="w-full"
         >
           {loading ? "🌍 Searching Universe..." : "Check Family Existence"}

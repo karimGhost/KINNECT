@@ -31,7 +31,7 @@ const {userData} = useAuth();
                             <SidebarTrigger />
 
           <Avatar>
-            <AvatarFallback className="bg-secondary text-lg">{group.avatar}</AvatarFallback>
+            <AvatarFallback className="bg-secondary text-lg">{familyName.slice(0, 1).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
             <h2 className="font-headline text-lg font-semibold">{familyName } Family</h2>

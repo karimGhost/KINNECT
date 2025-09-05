@@ -54,7 +54,7 @@ const {userData} = useAuth();
                 <SidebarMenuButton >
 
                   <Avatar className="h-6 w-6">
-                    <AvatarFallback className="bg-secondary text-sm">{groups[0].avatar}</AvatarFallback>
+                    <AvatarFallback className="bg-secondary text-sm">{familyName.slice(0, 1).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <span>{familyName} family</span>
                 </SidebarMenuButton>
