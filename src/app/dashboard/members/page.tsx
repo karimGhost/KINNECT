@@ -22,7 +22,7 @@ import {
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import type { User } from "@/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import FamilyPendingPage from "@/components/FamilyPages/FamilyPendingPage";
 import FamilyProfile from "./FamilyProfile";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 // ✅ Single Member card
 const MemberCard = ({
@@ -207,8 +208,8 @@ const PendingRequestCard = ({
 );
 
 export default function MembersPage() {
- const {userData, user} = useAuth();
-      const { members,requests, loading } = useFamilyMembers(userData?.familyId );
+ const {userData} = useAuth();
+      const { members,requests, loading  } = useFamilyMembers(userData?.familyId );
 const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 const [Adding,setAdding] = useState(false);
 const [Removing,setRemoving] = useState(false);
@@ -222,6 +223,19 @@ const route = useRouter()
   const familyName = members.length > 0 ? userData?.familyName || "Family" : "Family";
 
 
+    const [ user] = useAuthState(auth);
+  const router = useRouter();
+
+  const {loadings} = useAuth();
+  
+    useEffect(() => {
+  if(!user && !loadings){
+    router.push("/")
+  }
+
+        console.log("loading", loadings)
+
+},[user, loadings]);
 /**
  * Accept a pending family join request
  * @param familyId string - family document ID
@@ -313,7 +327,7 @@ const route = useRouter()
   }
 }
 
-  if (loading) {
+  if (loadings) {
     return <p className="p-6 text-center">Loading members...</p>;
   }
 
@@ -328,7 +342,7 @@ const route = useRouter()
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* ✅ Family profile card */}
-     <FamilyProfile familyId={userData.familyId} approvedMembers={approvedMembers}/>
+     <FamilyProfile familyId={userData?.familyId} approvedMembers={approvedMembers}/>
 
       <div className="grid md:grid-cols-2 gap-8 items-start mt-4">
         {/* ✅ Approved members */}

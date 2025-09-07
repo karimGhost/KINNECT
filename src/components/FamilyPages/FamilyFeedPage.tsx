@@ -24,6 +24,7 @@ const {userData} = useAuth()
   // Fetch family info
   useEffect(() => {
     const fetchFamily = async () => {
+      if(!userData) return;
       const famSnap = await getDoc(doc(db, "families", userData?.familyId));
       if (famSnap.exists()) {
         const famData = famSnap.data();

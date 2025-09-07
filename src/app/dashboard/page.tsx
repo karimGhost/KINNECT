@@ -11,14 +11,21 @@ import FamilyPendingPage from "@/components/FamilyPages/FamilyPendingPage";
 import ExtraSignupPage from "@/components/CompleteReg/ExtraSignupPage";
 import { useAuth } from "@/hooks/useAuth";
 import Spinner from "@/components/Animations/spiner";
-
+import { useRouter } from "next/navigation";
 export default function DashboardPage() {
   // const [user, authLoading] = useAuthState(auth); // 🔹 auth loading state
-  const [dataLoading, setDataLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true)
+const { userData, setUserData, loading} = useAuth()
+const router = useRouter()
+  const [ user] = useAuthState(auth);
 
-const {user, userData, setUserData, loading} = useAuth()
 
 
+  useEffect(() => {
+if(!user){
+  router.push("/")
+}
+  }, [user]);
   // Refresh Firestore user profile
   const refreshUserData = async () => {
     if (user) {

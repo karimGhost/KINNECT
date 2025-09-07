@@ -75,10 +75,16 @@ export default function DashboardLayout({
     <SidebarMenu>
   <SidebarMenuItem>
     <SidebarMenuButton asChild tooltip="Family Feed">
-      <SidebarLink href="/dashboard" >
-            <Home  />
+      <SidebarLink  href="/dashboard" >
+            <span className="flex items-center mb-1 gap-2 font-semibold mt-1">
+            <Home className="h-5 w-5" />
+                      Family Feed
 
-        Family Feed
+            </span>
+
+           
+
+        
       </SidebarLink>
     </SidebarMenuButton>
   </SidebarMenuItem>
@@ -86,9 +92,14 @@ export default function DashboardLayout({
   <SidebarMenuItem>
     <SidebarMenuButton asChild tooltip="Members">
       <SidebarLink href="/dashboard/members" >
+                     <span className="flex items-center mb-1 gap-2 font-semibold">
+ 
             <Users  />
+<b>
+          Members <PendingList />
 
-        Members <PendingList />
+</b>
+</span>
       </SidebarLink>
     </SidebarMenuButton>
   </SidebarMenuItem>
@@ -96,9 +107,13 @@ export default function DashboardLayout({
   <SidebarMenuItem>
     <SidebarMenuButton asChild tooltip="Family Chat">
       <SidebarLink href="/dashboard/Chat" >
+          
+                     <span className="flex mb-1 items-center gap-2 font-semibold">
+ 
             <GroupIcon  />
 
         Family Chat
+        </span>
       </SidebarLink>
     </SidebarMenuButton>
     <IsChat />
@@ -107,9 +122,12 @@ export default function DashboardLayout({
   <SidebarMenuItem>
     <SidebarMenuButton asChild tooltip="Discover">
       <SidebarLink href="/dashboard/discover" >
+                           <span className="flex mb-1 items-center gap-2 font-semibold">
+ 
                   <Compass  />
 
         Discover
+        </span>
       </SidebarLink>
     </SidebarMenuButton>
   </SidebarMenuItem>

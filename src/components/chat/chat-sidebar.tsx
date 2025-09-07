@@ -24,10 +24,11 @@ interface ChatSidebarProps {
 
 export default function ChatSidebar({ groups }: ChatSidebarProps) {
 
-const {userData} = useAuth();
+const {userData,user} = useAuth();
         const { members, loading } = useFamilyMembers(userData?.familyId );
   
   const familyName = members.length > 0 ? userData?.familyName || "Family" : "Family";
+  const currentUserIsAdmin = members.find((m) => m.AdminId === user?.uid ) !== undefined;
 
   const approvedMembers = members.filter((m) => m?.approved);
   return (
@@ -56,7 +57,8 @@ const {userData} = useAuth();
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="bg-secondary text-sm">{familyName.slice(0, 1).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <span>{familyName} family</span>
+
+                  <span>{familyName} family </span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
           </SidebarMenu>
@@ -67,8 +69,8 @@ const {userData} = useAuth();
             <SidebarMenuItem>
                 <Link href="/moderation" className="w-full">
                     <SidebarMenuButton tooltip="Intelligent Moderator">
-                        <BotMessageSquare />
-                        <span>Moderator</span>
+                      
+                      {currentUserIsAdmin && <> <BotMessageSquare /> <span>Moderator</span> </>   }
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>

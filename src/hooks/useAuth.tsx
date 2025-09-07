@@ -9,6 +9,8 @@ import { doc,onSnapshot, getDoc, collection, query, where, getDocs } from "fireb
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+    const [loadings, setLoadings] = useState(true);
+
   const [userData, setUserData] = useState<any>(null);
 const [theme, setTheme] = useState<any>(null)
  const [family, setFamily] = useState<any>(null);
@@ -28,10 +30,14 @@ useEffect(() => {
       
       setUserData(null);
           setLoading(false);
+                    setLoadings(false);
+
 
     }
 
     setLoading(false);
+                        setLoadings(false);
+
   });
 
   return () => unsubscribe();
@@ -83,10 +89,13 @@ useEffect(() => {
       setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
           setLoading(false);
+                    setLoadings(false);
 
       console.error("Error loading profile:", err);
     } finally {
       setLoading(false);
+                          setLoadings(false);
+
     }
   };
 
@@ -113,11 +122,15 @@ useEffect(() => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
+          setLoading(false);
+                              setLoadings(false);
+
+
     });
 
     return () => unsubscribe();
   }, []);
 
   const userD =  userData;
-  return { user, loading, userData ,userD, setUserData, family, posts};
+  return { user, loading, userData ,userD, setUserData,loadings, family, posts};
 }

@@ -4,7 +4,7 @@ import type { Message, User } from "@/lib/types"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { ArrowDown } from "lucide-react"
+import { ArrowDown, User } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { doc, Timestamp, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -191,6 +191,7 @@ function extractUrl(text: string): string[] | null {
   const match = text?.match(/(https?:\/\/[^\s.,!?")\]\}]+)/g);
   return match ? match : null;
 }
+  const { userData , user} = useAuth();
 
   const url = extractUrl(message?.text);
   const urL = extractUrl(message?.text);
@@ -355,8 +356,8 @@ return(
       >
         {/* Avatar */}
         <Avatar className="h-8 w-8">
-          <AvatarImage src={message.author.avatar} alt={message.author.name} />
-          <AvatarFallback>{message.author.name.charAt(0)}</AvatarFallback>
+          <AvatarImage src={isCurrentUser? userData?.avatarUrl : message?.author?.avatar} alt={message.author.name} />
+          <AvatarFallback>{isCurrentUser ?  userData?.fullName?.charAt(0) : message.author.name.charAt(0)}</AvatarFallback>
         </Avatar>
 
         <div className="max-w-xs md:max-w-md lg:max-w-lg space-y-1">

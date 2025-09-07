@@ -18,6 +18,7 @@ import { doc, getDoc,setDoc, collection, getDocs, query, where, updateDoc, delet
 import { db } from "@/lib/firebase";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import Link from "next/link";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -25,7 +26,26 @@ export default function SettingsPage() {
   const [showPayPal, setShowPayPal] = useState(false);
 const [selectedBadge, setSelectedBadge] = useState<"gold" | "diamond">("gold");
 
-const {user, userData, setUserData} = useAuth();
+
+
+
+
+const { userData, setUserData} = useAuth();
+
+
+
+   const [ user] = useAuthState(auth);
+  const {loading} = useAuth();
+  
+    useEffect(() => {
+  if(!user && !loading){
+    router.push("/")
+  }
+
+        console.log("loading", loading)
+
+},[user, loading]);
+
  const [avatarUrl, setAvatarUrl] = useState(userData?.avatarUrl);
 const [uploading, setUploading] = useState(false);
 
@@ -201,125 +221,68 @@ localStorage.clear()
     }
   };
 
-const handleAvatarChange = async (
-  e: React.ChangeEvent<HTMLInputElement>
-) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+   
 
-    if (!file.type.startsWith("image/") ) {
-      toast({
-        title: "Invalid File",
-        description: "Please select a valid image file.",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    if (!user?.uid) {
-  console.error("User UID is missing");
-  return;
-}
-  const public_id = `profiledp/${user.uid}`;
-
-// 1. Get signed upload details 
-const signRes = await fetch("/api/sign-upload", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ public_id, folder: "profiledp" }),
-});
-
-const { timestamp, signature, apiKey, cloudName } = await signRes.json();
-
-const formData = new FormData();
-formData.append("file", file);
-formData.append("public_id", public_id);
-formData.append("folder", "profiledp");
-formData.append("overwrite", "true"); // ✅ must match signed fields Blabzio
-formData.append("api_key", apiKey);
-formData.append("timestamp", timestamp.toString());
-formData.append("signature", signature);
-
+const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  try {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     setUploading(true);
-  
-    try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-  method: "POST",
-  body: formData,
-});
-      const data = await res.json();
-      if (!data.secure_url) {
-  console.error("Upload failed", data); // <== show exact Cloudinary error
-  return;
-}
-      if (data.secure_url) {
-        setAvatarUrl(data.secure_url);
-  
-        console.log("avatarurl", data.secure_url)
-        if (user?.uid) {
-          const userRef = doc(db, "users", user.uid);
-          await updateDoc(userRef, { avatarUrl: data.secure_url });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
 
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      { method: "POST", body: formData }
+    );
 
+    const data = await res.json();
 
+    if (data.secure_url) {
+      setAvatarUrl(data.secure_url);
 
-        const postsRef = collection(db, "posts");
+      if (user?.uid) {
+        // Update user profile
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, { avatarUrl: data.secure_url });
 
-const q = query(postsRef, where("uid", "==", user.uid));
+        // Update all posts by this user in their family
+        const postsRef = collection(db, "families", userData.familyId, "posts");
+        const q = query(postsRef, where("uid", "==", user.uid));
+        const snapshot = await getDocs(q);
 
-const snapshot = await getDocs(q);
-
-const updates = snapshot.docs.map((postDoc) => {
-  return updateDoc(doc(db, "posts", postDoc.id), {
-      "author.avatarUrl":  data.secure_url,
-  });
-
-});
-
-await Promise.all(updates);
-
-
-
-
-
- const videoRef = collection(dbd, "videos");
-
-const v = query(videoRef, where("user.uid", "==", user?.uid));
-
-const snapshots = await getDocs(v);
-
-const updated = snapshots.docs.map((postDoc) => {
-  return updateDoc(doc(dbd, "videos", postDoc.id), {
-      "user.avatarUrl":  data.secure_url,
-  });
-  
-});
-
-await Promise.all(updated);
-
-
-
-        }
-  
-        toast({
-          title: "Avatar Updated",
-          description: "Your profile picture has been updated.",
+        const updates = snapshot.docs.map((postDoc) => {
+          const postRef = doc(db, "families", userData.familyId, "posts", postDoc.id);
+          return updateDoc(postRef, {
+            "author.avatarUrl": data.secure_url,
+          });
         });
-      } else {
-        throw new Error("No secure URL returned");
+
+        await Promise.all(updates);
       }
-    } catch (error) {
-      console.error("Upload failed", error);
+
       toast({
-        title: "Upload Failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
+        title: "Avatar Updated",
+        description: "Your profile picture has been updated.",
       });
-    } finally {
-      setUploading(false);
+    } else {
+      throw new Error("No secure URL returned");
     }
-  };
+  } catch (error) {
+    console.error("Upload failed", error);
+    toast({
+      title: "Upload Failed",
+      description: "Something went wrong. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   const triggerFileSelect = () => {
       if (!fileInputRef.current) {
@@ -329,22 +292,6 @@ await Promise.all(updated);
     fileInputRef.current?.click();
   };
 
-const handleSavePrivacy = async () => {
-  if (!user?.uid) return toast({ title: "Please log in" });
-
-  const docRef = doc(db, "users", user.uid);
-
-  try {
-    await updateDoc(docRef, {
-      privacySettings,
-    });
-
-    toast({ title: "Privacy settings saved ✅" });
-  } catch (err) {
-    console.error("Error saving privacy settings:", err);
-    toast({ title: "Failed to save", variant: "destructive" });
-  }
-};
 
 const reauthenticate = async (email: string, currentPassword: string) => {
   const credential = EmailAuthProvider.credential(email, currentPassword);
@@ -453,6 +400,7 @@ const handleSaveNotifications = async () => {
 
   try {
 
+
      const usersRef = collection(db, "users");
     const qp = query(usersRef, where("username", "==", username));
     const querySnapshot = await getDocs(qp);
@@ -488,9 +436,9 @@ const UploadedTimes = !isNaN(current) ? (current + 1).toString() : "1" ;
 
 
 
+        const postsRef = collection(db, "families", userData.familyId, "posts");
 
     
-            const postsRef = collection(db, "posts");
     
     const q = query(postsRef, where("uid", "==", user?.uid));
     
@@ -510,20 +458,8 @@ const UploadedTimes = !isNaN(current) ? (current + 1).toString() : "1" ;
     
     
     
-     const videoRef = collection(dbd, "videos");
-    
-    const v = query(videoRef, where("user.uid", "==", user?.uid));
-    
-    const snapshots = await getDocs(v);
-    
-    const updated = snapshots.docs.map((postDoc) => {
-      return updateDoc(doc(dbd, "videos", postDoc.id), {
-          "user.username":  username,
-      });
       
-    });
-    
-    await Promise.all(updated);
+   
 
 
 
@@ -631,8 +567,10 @@ const handleDeleteAccount = async () => {
   if (!confirm("Are you sure? This will permanently delete your account.")) return;
 
   try {
+
+
     // 🔥 1. Delete Posts + Cloudinary
-    const postQuery = query(collection(db, "posts"), where("author.uid", "==", user?.uid ));
+    const postQuery = query(collection(db, "families", userData.familyId, "posts"), where("author.uid", "==", user?.uid ));
     const postSnap = await getDocs(postQuery);
 
     await Promise.all(
@@ -648,19 +586,19 @@ const handleDeleteAccount = async () => {
         }
 
         // Delete post from Firestore
-        await deleteDoc(doc(db, "posts", d.id));
+        await deleteDoc(doc(db, "families", userData.familyId, d.id));
       })
     );
 
     // 🗑 2. Delete Comments
-    const commentQuery = query(collection(db, "comments"), where("uid", "==", user?.uid ));
+    const commentQuery = query(collection(db, "families", userData.familyId, "comments"), where("uid", "==", user?.uid ));
     const commentSnap = await getDocs(commentQuery);
-    await Promise.all(commentSnap.docs.map((d) => deleteDoc(doc(db, "comments", d.id))));
+    await Promise.all(commentSnap.docs.map((d) => deleteDoc(doc(db, "families", userData.familyId, "comments", d.id))));
 
     // ❤️ 3. Delete Likes
-    const likeQuery = query(collection(db, "likes"), where("userId", "==", user?.uid));
+    const likeQuery = query(collection(db, "families", userData.familyId, "likes"), where("userId", "==", user?.uid));
     const likeSnap = await getDocs(likeQuery);
-    await Promise.all(likeSnap.docs.map((d) => deleteDoc(doc(db, "likes", d.id))));
+    await Promise.all(likeSnap.docs.map((d) => deleteDoc(doc(db, "families", userData.familyId, "likes", d.id))));
 
     // 👤 4. Delete User Profile
     await deleteDoc(doc(db, "users", user?.uid as string));
@@ -1014,7 +952,7 @@ if (changedTwice && updatedRecently) {
     <CardDescription>Find FAQs, contact support, or report a problem.</CardDescription>
   </CardHeader>
   <CardContent>
-    <Link href="/help" className="text-sm text-primary hover:underline">Go to Help Center</Link>
+    <Link href="/dashboard/help" className="text-sm text-primary hover:underline">Go to Help Center</Link>
   </CardContent>
 </Card>
 
@@ -1030,10 +968,10 @@ if (changedTwice && updatedRecently) {
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <p className="text-sm text-muted-foreground">Read our legal documents and policies:</p>
       <div className="flex flex-wrap gap-4">
-        <Link href="/privacy" className="text-sm text-primary hover:underline">Privacy Policy</Link>
-        <Link href="/terms" className="text-sm text-primary hover:underline">Terms of Service</Link>
-        <Link href="/policy" className="text-sm text-primary hover:underline">Cookies Policy</Link>
-        <Link href="/help" className="text-sm text-primary hover:underline">Support</Link>
+        <Link href="/dashboard/privacy" className="text-sm text-primary hover:underline">Privacy Policy</Link>
+        <Link href="/dashboard/terms" className="text-sm text-primary hover:underline">Terms of Service</Link>
+        <Link href="/dashboard/policy" className="text-sm text-primary hover:underline">Cookies Policy</Link>
+        <Link href="/dashboard/help" className="text-sm text-primary hover:underline">Support</Link>
       </div>
     </div>
   </CardContent>

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
+import { useAuth } from "@/hooks/useAuth";
 export default function EditProfileModal({ userData, open, onClose }: any) {
   const [fullName, setFullName] = useState(userData.fullName || "");
   const [age, setAge] = useState(userData.age || "");
@@ -17,7 +17,7 @@ export default function EditProfileModal({ userData, open, onClose }: any) {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+const {user} = useAuth()
   // Generate preview when a file is selected
   useEffect(() => {
     if (!avatarFile) {
@@ -30,6 +30,53 @@ export default function EditProfileModal({ userData, open, onClose }: any) {
     // cleanup memory when component unmounts or file changes
     return () => URL.revokeObjectURL(objectUrl);
   }, [avatarFile]);
+
+
+
+
+const updateDb = async (dataurl: string) => {
+  try {
+    if (!user?.uid || !userData?.familyId) {
+      throw new Error("Missing user or family information");
+    }
+
+    // Update user profile
+    const userRef = doc(db, "users", user?.uid);
+    await updateDoc(userRef, { avatarUrl: dataurl });
+
+    // Update all posts by this user in their family
+    const postsRef = collection(db, "families", userData.familyId, "posts");
+    const q = query(postsRef, where("uid", "==", user?.uid));
+    const snapshot = await getDocs(q);
+
+    const updates = snapshot.docs.map((postDoc) => {
+      const postRef = doc(
+        db,
+        "families",
+        userData.familyId,
+        "posts",
+        postDoc.id
+      );
+      return updateDoc(postRef, {
+        "author.avatarUrl": dataurl,
+      });
+    });
+
+    await Promise.all(updates);
+
+    toast({
+      title: "Avatar Updated",
+      description: "Your profile picture has been updated.",
+    });
+  } catch (error) {
+    console.error("Avatar update failed:", error);
+    toast({
+      title: "Upload Failed",
+      description: "Something went wrong. Please try again.",
+      variant: "destructive",
+    });
+  }
+};
 
   const handleUploadAvatar = async () => {
     if (!avatarFile) return userData.avatarUrl;
@@ -47,29 +94,55 @@ export default function EditProfileModal({ userData, open, onClose }: any) {
     );
 
     const data = await res.json();
+    // updateDb(data.se)
     return data.secure_url;
   };
 
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      const avatarUrl = await handleUploadAvatar();
 
-      await updateDoc(doc(db, "users", userData.uid), {
-        fullName,
-        age,
-        bio,
-        avatarUrl,
-        location: { city, country },
+
+ const handleSave = async () => {
+  setLoading(true);
+  try {
+    const avatarUrl = await handleUploadAvatar();
+
+    // Update user profile
+    await updateDoc(doc(db, "users", userData.uid), {
+      fullName,
+      age,
+      bio,
+      avatarUrl,
+      location: { city, country },
+    });
+
+    // Update all posts authored by this user
+    const postsRef = collection(db, "families", userData.familyId, "posts");
+    const q = query(postsRef, where("uid", "==", user?.uid));
+    const snapshot = await getDocs(q);
+
+    const updates = snapshot.docs.map((postDoc) => {
+      const postRef = doc(
+        db,
+        "families",
+        userData.familyId,
+        "posts",
+        postDoc.id
+      );
+      return updateDoc(postRef, {
+        "author.name": fullName,
+        "author.avatarUrl": avatarUrl, // also update avatar if needed
       });
+    });
 
-      onClose(); // close modal after save
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    await Promise.all(updates);
+
+    onClose(); // ✅ close modal AFTER all updates are done
+  } catch (err) {
+    console.error("Error updating profile:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

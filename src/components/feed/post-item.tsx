@@ -789,7 +789,7 @@ post.mediaUrl && post.mediaType === "image" ?
   <DropdownMenuContent align="end">
  
 
-    <DropdownMenuItem onClick={() => window.open(`/feed/${post.id}`, '_blank')}>
+    <DropdownMenuItem onClick={() => window.open(`/dashboard/${post.id}`, '_blank')}>
   View Post
 </DropdownMenuItem>
     <DropdownMenuItem onClick={() => handleShareToFeed(post)}>
@@ -838,7 +838,7 @@ post.mediaUrl && post.mediaType === "image" ?
   Block @{post.author.name}
 </DropdownMenuItem> */}
 
-<DropdownMenuItem
+{/* <DropdownMenuItem
   className="text-destructive"
 
 
@@ -848,7 +848,7 @@ post.mediaUrl && post.mediaType === "image" ?
   }}
 >
   Report Post
-</DropdownMenuItem>
+</DropdownMenuItem> */}
 
 
 
@@ -1025,7 +1025,7 @@ post.mediaUrl && post.mediaType === "image" ?
 </DropdownMenu>
     
 }
-     {/* { user?.uid !== comment?.uid &&
+     {/* { user?.uid !== comment?.uid && view
 
  <DropdownMenu>
             <DropdownMenuTrigger asChild>

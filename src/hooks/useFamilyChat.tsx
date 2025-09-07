@@ -32,6 +32,7 @@ export interface ChatMessage {
 export function useFamilyChat(familyId?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  // const [loadings, setLoadings] = useState(true);
 
  useEffect(() => {
   if (!familyId) return;
@@ -57,7 +58,7 @@ export function useFamilyChat(familyId?: string) {
   return () => unsub();
 }, [familyId]);
 
-  return { messages, loading };
+  return { messages, loading, loadings: loading };
 }
 
 // hooks/useFamilyChat.ts (continued)
