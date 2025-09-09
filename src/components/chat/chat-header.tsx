@@ -3,13 +3,14 @@ import type { Group } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Video, Phone, MapPin, MoreVertical } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import VideoCallDialog from './video-call-dialog';
 import LocationDialog from './location-dialog';
 import { useFamilyMembers } from '@/hooks/useFamilyMembers';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarInset, SidebarTrigger } from '../ui/sidebar';
-
+import AudioCallDialog from './AudioCallDialog';
+import { useWebRTCCall } from '@/hooks/useWebRTCCall';
 interface ChatHeaderProps {
   group: Group;
 }
@@ -17,12 +18,18 @@ interface ChatHeaderProps {
 export default function ChatHeader({ group }: ChatHeaderProps) {
   const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
-const {userData} = useAuth();
+    const [isAudioCallOpen, setIsAudioCallOpen] = useState(false)
+
+const {userData, user} = useAuth();
         const { members, loading } = useFamilyMembers(userData?.familyId );
   
   const familyName = members.length > 0 ? userData?.familyName || "Family" : "Family";
 
   const approvedMembers = members.filter((m) => m?.approved);
+
+  useEffect(()=>{
+console.log("approvedMembers", approvedMembers)
+  },[approvedMembers])
   return (
     <>
 
@@ -38,22 +45,48 @@ const {userData} = useAuth();
             <p className="text-sm text-muted-foreground">{approvedMembers.length} members</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        
+        <div style={{float:"right", width:"50%"}} className="flex items-center gap-2 bg-red">
           <Button variant="ghost" size="icon" onClick={() => setIsVideoCallOpen(true)} aria-label="Start video call">
             <Video className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Start audio call">
+          <Button           onClick={() => setIsAudioCallOpen(true)}
+ variant="ghost" size="icon" aria-label="Start audio call">
             <Phone className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => setIsLocationOpen(true)} aria-label="Share location">
             <MapPin className="h-5 w-5" />
           </Button>
+
           <Button variant="ghost" size="icon" aria-label="More options">
             <MoreVertical className="h-5 w-5" />
           </Button>
         </div>
       </div>
-      <VideoCallDialog isOpen={isVideoCallOpen} onOpenChange={setIsVideoCallOpen} members={group.members} />
+ 
+
+
+<VideoCallDialog
+ 
+  isOpen={isVideoCallOpen}
+  onOpenChange={setIsVideoCallOpen}
+  members={approvedMembers}        // array of {id,name,avatar,fullName}
+  groupId={userData.familyId}  
+  
+currentUser={{
+        id: user?.uid,
+        name: userData?.fullName,
+        avatar: userData?.avatarUrl,
+        familyId: userData?.familyId,
+        isOnline: userData?.isActive
+      }} />
+
+
+         <AudioCallDialog
+        isOpen={isAudioCallOpen}
+        onOpenChange={setIsAudioCallOpen}
+        members={group.members}
+      />
       <LocationDialog isOpen={isLocationOpen} onOpenChange={setIsLocationOpen} members={group.members} />
     </>
   );
