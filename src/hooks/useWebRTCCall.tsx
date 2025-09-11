@@ -54,7 +54,7 @@ export function useWebRTCCall({ currentuserIs }: { currentuserIs: { id: string; 
 
   const startLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    const stream = await navigator.mediaDevices?.getUserMedia({ audio: true, video: true });
     stream.getVideoTracks().forEach(track => track.enabled = true);
 stream.getAudioTracks().forEach(track => track.enabled = true);
 
@@ -145,175 +145,188 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
   }, []);
 
   const startCall = useCallback(
-    async (members: Member[]) => {
-      await startLocalStream();
+  async (members: Member[]) => {
+    await startLocalStream();
 
-      const id = crypto.randomUUID();
-      const callRef = doc(db, "calls", id);
-      callDocRef.current = callRef;
-      setCallId(id);
+    const id = crypto.randomUUID();
+    const callRef = doc(db, "calls", id);
+    callDocRef.current = callRef;
+    setCallId(id);
 
-      const offers: Record<string, any> = {};
+    const offers: Record<string, any> = {};
 
-      // create offers for each other participant
-      for (const peer of members.filter((m) => String(m.id) !== String(currentuserIs?.id))) {
-        const pairKey = `${currentuserIs?.id}_${peer.id}`;
-        const pc = createPeerConnection(pairKey, peer.id, true, callRef);
+    // create offers for each other participant
+    for (const peer of members.filter((m) => String(m.id) !== String(currentuserIs?.id))) {
+      const pairKey = `${currentuserIs?.id}_${peer.id}`;
 
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        offers[pairKey] = {
-          type: offer.type,
-          sdp: offer.sdp,
-          from: currentuserIs?.id,
-          to: peer.id,
-        };
-      }
+      // ✅ create peer connection with remote peerId
+      const pc = createPeerConnection(pairKey, peer.id, true, callRef);
 
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
 
-      // write the call doc (ringing)
-      await setDoc(callRef, {
-        status: "ringing",
-        caller: { id: currentuserIs?.id, name: currentuserIs?.name },
-        participants: {
-          [normalize(currentuserIs?.id)]: { muted: false, videoOn: true },
-        },
-        offers,
-        createdAt: Date.now(),
-      });
+      offers[pairKey] = {
+        type: offer.type,
+        sdp: offer.sdp,
+        from: currentuserIs?.id,
+        to: peer.id,
+      };
+    }
 
-      // listen to call doc updates
-      const unsubCall = onSnapshot(callRef, (snap) => {
-        const data = snap.data() || {};
-        if (data.status) setStatus(data.status);
-        if (data.caller) setCaller(data.caller);
-        if (data.participants) {
-          const participants = data.participants as Record<string, { muted: boolean; videoOn: boolean }>;
-          setMuted(Object.fromEntries(Object.entries(participants).map(([k, p]) => [normalize(k), p.muted])));
-          setVideoOn(Object.fromEntries(Object.entries(participants).map(([k, p]) => [normalize(k), p.videoOn])));
-        }
-        if (data.answers) {
-          Object.entries<any>(data.answers).forEach(([pairKey, answer]) => {
-            // pairKey format: callerId_peerId
-            const targetPeerId = pairKey.split("_")[1];
-            const pc = pcsRef.current[normalize(targetPeerId)];
-            if (pc && answer && !pc.currentRemoteDescription) {
-              pc.setRemoteDescription(new RTCSessionDescription({ type: answer.type, sdp: answer.sdp })).catch(console.error);
-            }
-          });
-        }
-      });
-      unsubRef.current.push(unsubCall);
+    // write the call doc (ringing)
+    await setDoc(callRef, {
+      status: "ringing",
+      caller: { id: currentuserIs?.id, name: currentuserIs?.name },
+      participants: {
+        [normalize(currentuserIs?.id)]: { muted: false, videoOn: true },
+      },
+      offers,
+      createdAt: Date.now(),
+    });
 
-      // listen for calleeCandidates for each pairKey (callee writes these)
-      for (const peer of members.filter((m) => String(m.id) !== String(currentuserIs?.id))) {
-        const pairKey = `${currentuserIs?.id}_${peer.id}`;
-        const colRef = collection(callRef, `calleeCandidates_${pairKey}`);
-        const unsubCallee = onSnapshot(colRef, (snap) => {
-          snap.docChanges().forEach((change) => {
-            if (change.type === "added") {
-              const cand = change.doc.data();
-              const pc = pcsRef.current[normalize(peer.id)];
-              if (pc) pc.addIceCandidate(new RTCIceCandidate(cand)).catch(console.error);
-            }
-          });
-        });
-        unsubRef.current.push(unsubCallee);
-      }
-console.log("status", status)
-      setIsCalling(true);
-      setStatus("ringing");
-      return id;
-    },
-    [createPeerConnection, currentuserIs?.id, currentuserIs?.name, startLocalStream]
-  );
-
-  const acceptCall = useCallback(
-    async (id: string, members: Member[]) => {
-      await startLocalStream();
-      const callRef = doc(db, "calls", id);
-      callDocRef.current = callRef;
-      setCallId(id);
-
-      await updateDoc(callRef, {
-        status: "active",
-        [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true },
-      });
-      setStatus("active");
-
-      const snap = await getDoc(callRef);
+    // listen to call doc updates
+    const unsubCall = onSnapshot(callRef, (snap) => {
       const data = snap.data() || {};
-      const offers = data.offers || {};
-
-      const offersForMe = Object.entries<any>(offers).filter(([, offer]) => offer && offer.to === currentuserIs?.id);
-
-      for (const [pairKey, offer] of offersForMe) {
-        const callerId = offer.from as string;
-        const pc = createPeerConnection(pairKey, callerId, false, callRef);
-
-        // subscribe to caller ICE candidates
-        const callerCandidatesCol = collection(callRef, `callerCandidates_${pairKey}`);
-        const unsubCallerCand = onSnapshot(callerCandidatesCol, (snap2) => {
-          snap2.docChanges().forEach((change) => {
-            if (change.type === "added") {
-              const c = change.doc.data();
-              const pcInner = pcsRef.current[normalize(callerId)];
-              if (pcInner) pcInner.addIceCandidate(new RTCIceCandidate(c)).catch(console.error);
-            }
-          });
-        });
-        unsubRef.current.push(unsubCallerCand);
-
-        // set remote offer
-        await pc.setRemoteDescription(new RTCSessionDescription({ type: offer.type, sdp: offer.sdp })).catch(console.error);
-
-        // create answer and write it
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        await updateDoc(callRef, {
-          [`answers.${pairKey}`]: { type: answer.type, sdp: answer.sdp, from: currentuserIs?.id },
-        });
-
-        // listen for calleeCandidates written by this callee (so caller can add them)
-        const calleeCandidatesCol = collection(callRef, `calleeCandidates_${pairKey}`);
-        const unsubCallee = onSnapshot(calleeCandidatesCol, (snap3) => {
-          snap3.docChanges().forEach((change) => {
-            if (change.type === "added") {
-              const c = change.doc.data();
-              const pcInner = pcsRef.current[normalize(callerId)];
-              if (pcInner) pcInner.addIceCandidate(new RTCIceCandidate(c)).catch(console.error);
-            }
-          });
-        });
-        unsubRef.current.push(unsubCallee);
+      if (data.status) setStatus(data.status);
+      if (data.caller) setCaller(data.caller);
+      if (data.participants) {
+        const participants = data.participants as Record<string, { muted: boolean; videoOn: boolean }>;
+        setMuted(Object.fromEntries(Object.entries(participants).map(([k, p]) => [normalize(k), p.muted])));
+        setVideoOn(Object.fromEntries(Object.entries(participants).map(([k, p]) => [normalize(k), p.videoOn])));
       }
+      if (data.answers) {
+        Object.entries<any>(data.answers).forEach(([pairKey, answer]) => {
+          // pairKey format: callerId_peerId
+          const targetPeerId = pairKey.split("_")[1];
+          const pc = pcsRef.current[normalize(targetPeerId)];
+          if (pc && answer && !pc.currentRemoteDescription) {
+            pc.setRemoteDescription(
+              new RTCSessionDescription({ type: answer.type, sdp: answer.sdp })
+            ).catch(console.error);
+          }
+        });
+      }
+    });
+    unsubRef.current.push(unsubCall);
 
-      // listen to call doc live updates
-      const unsubDoc = onSnapshot(callRef, (snapDoc) => {
-        const d = snapDoc.data() || {};
-        if (d.status) setStatus(d.status);
-        if (d.caller) setCaller(d.caller);
-        if (d.participants) {
-          const participants = d.participants as Record<string, { muted: boolean; videoOn: boolean }>;
-          setMuted(Object.fromEntries(Object.entries(participants).map(([k, p]) => [normalize(k), p.muted])));
-          setVideoOn(Object.fromEntries(Object.entries(participants).map(([k, p]) => [normalize(k), p.videoOn])));
-        }
-        if (d.answers) {
-          Object.entries<any>(d.answers).forEach(([pairKey, answer]) => {
-            const callerId = pairKey.split("_")[0];
-            const pc = pcsRef.current[normalize(callerId)];
-            if (pc && answer && !pc.currentRemoteDescription) {
-              pc.setRemoteDescription(new RTCSessionDescription({ type: answer.type, sdp: answer.sdp })).catch(console.error);
-            }
-          });
-        }
+    // listen for calleeCandidates for each pairKey (callee writes these)
+    for (const peer of members.filter((m) => String(m.id) !== String(currentuserIs?.id))) {
+      const pairKey = `${currentuserIs?.id}_${peer.id}`;
+      const colRef = collection(callRef, `calleeCandidates_${pairKey}`);
+      const unsubCallee = onSnapshot(colRef, (snap) => {
+        snap.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const cand = change.doc.data();
+            const pc = pcsRef.current[normalize(peer.id)];
+            if (pc) pc.addIceCandidate(new RTCIceCandidate(cand)).catch(console.error);
+          }
+        });
       });
-      unsubRef.current.push(unsubDoc);
+      unsubRef.current.push(unsubCallee);
+    }
 
-      setIsCalling(true);
-    },
-    [createPeerConnection, currentuserIs?.id, startLocalStream]
-  );
+    setIsCalling(true);
+    setStatus("ringing");
+    return id;
+  },
+  [createPeerConnection, currentuserIs?.id, currentuserIs?.name, startLocalStream]
+);
+
+const acceptCall = useCallback(
+  async (id: string, members: Member[]) => {
+    await startLocalStream();
+    const callRef = doc(db, "calls", id);
+    callDocRef.current = callRef;
+    setCallId(id);
+
+    await updateDoc(callRef, {
+      status: "active",
+      [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true },
+    });
+    setStatus("active");
+
+    const snap = await getDoc(callRef);
+    const data = snap.data() || {};
+    const offers = data.offers || {};
+
+    const offersForMe = Object.entries<any>(offers).filter(
+      ([, offer]) => offer && offer.to === currentuserIs?.id
+    );
+
+    for (const [pairKey, offer] of offersForMe) {
+      const callerId = offer.from as string;
+
+      // ✅ use callerId as remote peer
+      const pc = createPeerConnection(pairKey, callerId, false, callRef);
+
+      // subscribe to caller ICE candidates
+      const callerCandidatesCol = collection(callRef, `callerCandidates_${pairKey}`);
+      const unsubCallerCand = onSnapshot(callerCandidatesCol, (snap2) => {
+        snap2.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const c = change.doc.data();
+            const pcInner = pcsRef.current[normalize(callerId)];
+            if (pcInner) pcInner.addIceCandidate(new RTCIceCandidate(c)).catch(console.error);
+          }
+        });
+      });
+      unsubRef.current.push(unsubCallerCand);
+
+      // set remote offer
+      await pc.setRemoteDescription(
+        new RTCSessionDescription({ type: offer.type, sdp: offer.sdp })
+      ).catch(console.error);
+
+      // create answer and write it
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await updateDoc(callRef, {
+        [`answers.${pairKey}`]: { type: answer.type, sdp: answer.sdp, from: currentuserIs?.id },
+      });
+
+      // listen for calleeCandidates written by this callee (so caller can add them)
+      const calleeCandidatesCol = collection(callRef, `calleeCandidates_${pairKey}`);
+      const unsubCallee = onSnapshot(calleeCandidatesCol, (snap3) => {
+        snap3.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const c = change.doc.data();
+            const pcInner = pcsRef.current[normalize(callerId)];
+            if (pcInner) pcInner.addIceCandidate(new RTCIceCandidate(c)).catch(console.error);
+          }
+        });
+      });
+      unsubRef.current.push(unsubCallee);
+    }
+
+    // listen to call doc live updates
+    const unsubDoc = onSnapshot(callRef, (snapDoc) => {
+      const d = snapDoc.data() || {};
+      if (d.status) setStatus(d.status);
+      if (d.caller) setCaller(d.caller);
+      if (d.participants) {
+        const participants = d.participants as Record<string, { muted: boolean; videoOn: boolean }>;
+        setMuted(Object.fromEntries(Object.entries(participants).map(([k, p]) => [normalize(k), p.muted])));
+        setVideoOn(Object.fromEntries(Object.entries(participants).map(([k, p]) => [normalize(k), p.videoOn])));
+      }
+      if (d.answers) {
+        Object.entries<any>(d.answers).forEach(([pairKey, answer]) => {
+          const callerId = pairKey.split("_")[0];
+          const pc = pcsRef.current[normalize(callerId)];
+          if (pc && answer && !pc.currentRemoteDescription) {
+            pc.setRemoteDescription(
+              new RTCSessionDescription({ type: answer.type, sdp: answer.sdp })
+            ).catch(console.error);
+          }
+        });
+      }
+    });
+    unsubRef.current.push(unsubDoc);
+
+    setIsCalling(true);
+  },
+  [createPeerConnection, currentuserIs?.id, startLocalStream]
+);
+
 
   const joinCall = useCallback(async (id: string, members: Member[]) => acceptCall(id, members), [acceptCall]);
 

@@ -134,6 +134,8 @@ export default function VideoCallDialog({ currentuserIs, isOpen,groupId, onOpenC
     snap.forEach(async (docSnap) => {
       await updateDoc(docSnap.ref, {
         ended: false,
+              text: `${currentuserIs?.name}   video call ended `,
+
       });
     });
   } catch (err) {
