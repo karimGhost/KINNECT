@@ -7,25 +7,33 @@ import MessageList from "./message-list"
 import MessageInput from "./message-input"
 import ChatHeader from "./chat-header"
 import { useRouter } from "next/navigation";
+import { boolean } from "zod";
+import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 
 interface ChatViewProps {
   messages: Message[]
   currentUser: User
   containerRef: any
-}
+  videoCall: any
 
-export default function ChatView({ messages, currentUser, containerRef }: ChatViewProps) {
+}
+export default function ChatView({ messages, currentUser,videoCall, containerRef }: ChatViewProps) {
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const { userData, user } = useAuth();
 
    const containerRefs = useRef<HTMLDivElement | null>(null)
 
+     const { members, loading } = useFamilyMembers(userData?.familyId );
+     
+     const familyName = members.length > 0 ? userData?.familyName || "Family" : "Family";
+   
+     const approvedMembers = members.filter((m) => m?.approved);
   if (!userData?.familyId) return <p>No family joined yet.</p>;
 
   return (
 <div className="flex flex-col h-[100dvh]  h-screen bg-background max-w-2xl mx-auto w-full">
       {/* Chat Header */}
-      <ChatHeader group={{ id: "famId", avatar: "👨‍👩‍👧‍👦", members: [] }} />
+      <ChatHeader videoCall={videoCall} group={{ id: "famId", avatar: "👨‍👩‍👧‍👦", members: members}} onOpenChange={() => void 0}  />
 
   {/* Scrollable messages */}
   <div     ref={containerRefs}

@@ -20,7 +20,8 @@ inFamily:any;
   };
   createdAt: any;
 phoneNumber:any;
-
+avatar:any;
+name:any;
   bio: string;
   familyId: string;
   role: "admin" | "member";
@@ -28,6 +29,7 @@ phoneNumber:any;
 };
 
       
+
         
 
 

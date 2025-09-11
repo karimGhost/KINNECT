@@ -13,14 +13,75 @@ import AudioCallDialog from './AudioCallDialog';
 import { useWebRTCCall } from '@/hooks/useWebRTCCall';
 interface ChatHeaderProps {
   group: Group;
+    onOpenChange: (open: boolean) => void;
+  callId?: string | null;
+  videoCall: any;
+
 }
 
-export default function ChatHeader({ group }: ChatHeaderProps) {
+export default function ChatHeader({ group , onOpenChange, callId , videoCall}: ChatHeaderProps) {
   const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
     const [isAudioCallOpen, setIsAudioCallOpen] = useState(false)
-
 const {userData, user} = useAuth();
+
+const currentuserIs = {
+  id: user?.uid ?? "",  // fallback to empty string
+  name: userData?.fullName,
+  avatar: userData?.avatarUrl,
+  familyId: userData?.familyId,
+  isOnline: userData?.isActive,
+};
+
+  const {
+    localVideoRef,
+    getRemoteVideoRef,
+    startCall,
+    acceptCall,
+    declineCall,
+    hangUp,
+    toggleMute,
+    toggleVideo,
+    muted,
+    videoOn,
+    status,
+    caller,
+    callId: hookCallId,
+  } = useWebRTCCall({ currentuserIs });
+  const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
+
+ 
+  const handleAccept = async (id: string | null) => {
+
+    const idToUse = id ?? hookCallId;
+  
+    if (!idToUse) {
+      console.error("No call id to accept");
+      return;
+    }
+    try {
+      await acceptCall(idToUse, members);
+      setInternalCallId(idToUse);
+      setIsVideoCallOpen(true)
+    } catch (err) {
+      console.error("acceptCall error", err);
+    }
+  };
+
+  const handleDecline = async (id: string | null) => {
+    const idToUse = id ?? hookCallId;
+    if (!idToUse) return;
+    await declineCall(idToUse);
+    setInternalCallId(null);
+    setIsVideoCallOpen(false)
+  };
+
+  const handleEnd = async () => {
+    await hangUp();
+    onOpenChange(false);
+    setInternalCallId(null);
+  };
+
         const { members, loading } = useFamilyMembers(userData?.familyId );
   
   const familyName = members.length > 0 ? userData?.familyName || "Family" : "Family";
@@ -28,8 +89,8 @@ const {userData, user} = useAuth();
   const approvedMembers = members.filter((m) => m?.approved);
 
   useEffect(()=>{
-console.log("approvedMembers", approvedMembers)
-  },[approvedMembers])
+console.log("videoCall", videoCall)
+  },[videoCall])
   return (
     <>
 
@@ -66,14 +127,26 @@ console.log("approvedMembers", approvedMembers)
  
 
 
+
+    {videoCall?.ended  && videoCall?.author.id  !== user?.uid && (
+             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
+               <p className="text-xl">{videoCall?.author?.name} is calling...</p>
+               <div className="flex gap-4">
+                 <Button onClick={() => handleAccept(videoCall?.callId)} className="bg-green-600 text-white">Accept</Button>
+                 <Button onClick={() => handleDecline(videoCall?.callId)} variant="destructive">Decline</Button>
+               </div>
+             </div>
+           )}
+
+
 <VideoCallDialog
- 
+ callerId={videoCall?.callId}
   isOpen={isVideoCallOpen}
   onOpenChange={setIsVideoCallOpen}
   members={approvedMembers}        // array of {id,name,avatar,fullName}
-  groupId={userData.familyId}  
+  groupId={userData?.familyId}  
   
-currentUser={{
+currentuserIs={{
         id: user?.uid,
         name: userData?.fullName,
         avatar: userData?.avatarUrl,
@@ -85,9 +158,9 @@ currentUser={{
          <AudioCallDialog
         isOpen={isAudioCallOpen}
         onOpenChange={setIsAudioCallOpen}
-        members={group.members}
+        members={approvedMembers}
       />
-      <LocationDialog isOpen={isLocationOpen} onOpenChange={setIsLocationOpen} members={group.members} />
+      <LocationDialog isOpen={isLocationOpen} onOpenChange={setIsLocationOpen} members={approvedMembers} />
     </>
   );
 }

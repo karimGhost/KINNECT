@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import type { User } from "@/lib/types";
+import type { Currentuser } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,24 +10,28 @@ import { Mic, Video, PhoneOff } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { useWebRTCCall } from "@/hooks/useWebRTCCall";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
-interface Member { id: string; name?: string; avatar?: string; fullName?: string }
+import { useAuth } from "@/hooks/useAuth";
+import { User } from "@/types";
+interface Member {
+  uid(uid?: any): unknown; id?: string; name?: string; avatar?: string; fullName?: string 
+}
 
 
 
 interface VideoCallDialogProps {
-  currentUser: User;
+  currentuserIs: Currentuser;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   callId?: string | null;
-  members: Member[]; // pass the group members array
+  members: User[]; 
   groupId: string; // <-- NEW: id of the group / chat where we'll post the call invite
+  callerId: string;
 }
 
 
-export default function VideoCallDialog({ currentUser, isOpen,groupId, onOpenChange, callId, members }: VideoCallDialogProps) {
+export default function VideoCallDialog({ currentuserIs, isOpen,groupId, onOpenChange, callId, members , callerId}: VideoCallDialogProps) {
   const {
     localVideoRef,
     getRemoteVideoRef,
@@ -42,14 +46,37 @@ export default function VideoCallDialog({ currentUser, isOpen,groupId, onOpenCha
     status,
     caller,
     callId: hookCallId,
-  } = useWebRTCCall({ currentUser });
+  } = useWebRTCCall({ currentuserIs });
 
+  const {user, userData} = useAuth();
   const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
 
   useEffect(() => {
     // sync with hook callId if not set
     if (!internalCallId && hookCallId) setInternalCallId(hookCallId);
   }, [hookCallId, internalCallId]);
+
+
+
+  const EndCallMessage = async () => {
+  try {
+    if (!groupId) return;
+    const messagesCol = collection(db, "families", groupId, "messages");
+    // customize the message shape to match your app's messages schema
+    await addDoc(messagesCol, {
+      type: "Call_Ended",
+      ended: false,
+      from: { id: currentuserIs?.id, name: currentuserIs?.name },
+      text: `${currentuserIs?.name} started a video call`,
+      // optional: any extra metadata your chat uses:
+      metadata: { callId },
+    });
+
+
+  } catch (err) {
+    console.error("Failed to post call message:", err);
+  }
+};
 
   useEffect(() => {
     if (!isOpen) {
@@ -91,7 +118,34 @@ export default function VideoCallDialog({ currentUser, isOpen,groupId, onOpenCha
     setInternalCallId(null);
   };
 
+
+
+
+  const endCall = async () => {
+    const callId = callerId;
+  try {
+    if (!groupId) return;
+
+    const messagesCol = collection(db, "families", groupId, "messages");
+    // find the message that matches this callId
+    const q = query(messagesCol, where("callId", "==", callId));
+
+    const snap = await getDocs(q);
+    snap.forEach(async (docSnap) => {
+      await updateDoc(docSnap.ref, {
+        ended: true,
+      });
+    });
+  } catch (err) {
+    console.error("Error ending call:", err);
+  }
+};
+
+
   const handleEnd = async () => {
+    endCall()
+EndCallMessage()
+
     await hangUp();
     onOpenChange(false);
     setInternalCallId(null);
@@ -109,27 +163,50 @@ export default function VideoCallDialog({ currentUser, isOpen,groupId, onOpenCha
   };
 
 
-  // Add `groupId` to the component props type:
 
 // inside the component, add this helper to post a message
 const postCallMessage = async (callId: string) => {
   try {
     if (!groupId) return;
-    const messagesCol = collection(db, "groups", groupId, "messages");
+    const messagesCol = collection(db, "families", groupId, "messages");
     // customize the message shape to match your app's messages schema
     await addDoc(messagesCol, {
+
+
+      author: {
+        id: user?.uid,
+        name: userData?.fullName,
+        avatar: userData.avatarUrl,
+        isOnline: true
+      },
+
+      createdAt: serverTimestamp(),
+          reactions: {},
+
+      replyTo:  "",
+            replyAuthorName: "",
+                  replyPreview: "", // short snippet
+
+
+      fileUrl: "",
+     
+
       type: "call_invite",
       callId,
-      from: { id: currentUser.id, name: currentUser.name },
-      text: `${currentUser.name} started a video call`,
-      createdAt: serverTimestamp(),
+      ended: true,
+      from: { id: currentuserIs?.id, name: currentuserIs?.name },
+      text: `${currentuserIs?.name} started a video call`,
       // optional: any extra metadata your chat uses:
       metadata: { callId },
     });
+
+
   } catch (err) {
     console.error("Failed to post call message:", err);
   }
 };
+
+
 
 // Then update handleStart to post the message
 const handleStart = async () => {
@@ -143,6 +220,11 @@ const handleStart = async () => {
     console.error("Start call error:", err);
   }
 };
+
+
+useEffect(() => {
+console.log("members", members)
+},[members])
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -166,44 +248,57 @@ const handleStart = async () => {
         </DialogHeader>
 
         <div className={cn("flex-1 grid gap-2 p-4 overflow-y-auto bg-muted/20", getGridCols(members.length))}>
-          {members.map((member) => {
-            const memberId = String(member.id);
-            const isCurrentUser = memberId === currentUser.id;
+         {members.map((member) => {
+  const memberId = String(member.uid);
+  const isCurrentUser = memberId === currentuserIs?.id;
 
-            const remoteRef = getRemoteVideoRef(memberId);
+  const remoteRef = getRemoteVideoRef(memberId);
 
-            return (
-              <div key={memberId} className="relative aspect-video bg-card rounded-lg overflow-hidden flex items-center justify-center border">
-                <video
-                  ref={isCurrentUser ? (localVideoRef as any) : (remoteRef as any)}
-                  autoPlay
-                  playsInline
-                  muted={isCurrentUser}
-                  className="w-full h-full object-cover bg-black"
-                />
+  return (
+    <div
+      key={memberId}
+      className="relative aspect-video bg-card rounded-lg overflow-hidden flex items-center justify-center border"
+    >
+   <video
+  ref={isCurrentUser ? localVideoRef : remoteRef}
+  autoPlay
+  playsInline
+  muted={isCurrentUser}
+  className="w-full h-full object-cover bg-black"
+/>
 
-                {/* avatar fallback when participant's video flagged off */}
-                {!videoOn[memberId] && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Avatar className="h-20 w-20">
-                      <AvatarImage src={member.avatar} alt={member.name} />
-                      <AvatarFallback className="text-3xl">
-                        {member?.fullName?.charAt(0) ?? (member.name ? String(member.name).charAt(0) : "?")}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                )}
+      {/* avatar fallback when participant’s video is off */}
+      {!videoOn[memberId] && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Avatar className="h-20 w-20">
+            <AvatarImage src={member?.avatar} alt={member?.fullName} />
+            <AvatarFallback className="text-3xl">
+              {member?.fullName?.charAt(0) ??
+                (member.fullName ? String(member.fullName).charAt(0) : "?")}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      )}
 
-                <div className="absolute bottom-2 left-2 flex items-center gap-2">
-                  <Badge variant="secondary">{isCurrentUser ? "You" : member.name}</Badge>
-                  {muted[memberId] && <Badge variant="destructive" className="text-xs">muted</Badge>}
-                </div>
-              </div>
-            );
-          })}
+      <div className="absolute bottom-2 left-2 flex items-center gap-2">
+        <Badge variant="secondary">
+          {isCurrentUser ? "You" : member.fullName}
+        </Badge>
+        {muted[memberId] && (
+          <Badge variant="destructive" className="text-xs">
+            muted
+          </Badge>
+        )}
+      </div>
+    </div>
+  );
+
+})}
+
+
 
           {/* Ringing overlay (for non-caller participants) */}
-          {status === "ringing" && caller && caller.id !== currentUser.id && (
+          {status === "ringing" && caller && caller.id !== currentuserIs.id && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
               <p className="text-xl">{caller.name} is calling...</p>
               <div className="flex gap-4">
@@ -217,7 +312,7 @@ const handleStart = async () => {
         {/* Controls */}
         <div className="flex justify-center items-center gap-4 p-4 border-t bg-background">
           <Button
-            variant={muted[currentUser.id] ? "destructive" : "secondary"}
+            variant={muted[currentuserIs?.id] ? "destructive" : "secondary"}
             size="icon"
             className="rounded-full h-12 w-12"
             onClick={() => toggleMute()}
@@ -226,7 +321,7 @@ const handleStart = async () => {
           </Button>
 
           <Button
-            variant={!videoOn[currentUser.id] ? "destructive" : "secondary"}
+            variant={!videoOn[currentuserIs?.id] ? "destructive" : "secondary"}
             size="icon"
             className="rounded-full h-12 w-12"
             onClick={() => toggleVideo()}

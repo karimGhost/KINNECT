@@ -15,23 +15,32 @@ import {
 } from 'firebase/firestore';
 
 export interface ChatMessage {
- id: string
-  text: string
-  author: User
-  createdAt: any | null
-  type: "text" | "image" | "video" | "file"
-  fileUrl?: string | null
+  id: string;
+  text?: string; // make optional since not all messages have text
+  author: User;
+  createdAt: Date | null; // instead of any
+  type: "text" | "image" | "video" | "file" | "call_invite";
+  
+  // for media messages
+  fileUrl?: string | null;
   file?: {
-    name: string
-    size: number
-  }
-  replyTo?: string | null
-  reactions?: Record<string, string>
+    name: string;
+    size: number;
+  };
+
+  // for call messages
+  callId?: string;
+  ended?: boolean;
+
+  // extras
+  replyTo?: string | null;
+  reactions?: Record<string, string>; // emoji reactions
 }
 
 export function useFamilyChat(familyId?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+const [videoCall, setVideoCall] = useState<ChatMessage | null>(null);
   // const [loadings, setLoadings] = useState(true);
 
  useEffect(() => {
@@ -46,19 +55,36 @@ export function useFamilyChat(familyId?: string) {
     const msgs: ChatMessage[] = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
-        id: doc.id,            // include the Firestore document ID
-        ...data,               // spread the fields from Firestore
+        id: doc.id,            // include Firestore doc ID
+        ...data,               // spread Firestore fields
       } as ChatMessage;
     });
 
-    setMessages(msgs);         // ✅ use msgs, not data
+    // 🔎 Find any active call invite
+    const activeCall = msgs.find(
+      (m) =>
+        m.type === "call_invite" &&
+        m.ended === true && // not ended yet
+        m.callId // has a callId
+    );
+      // console.log("videoCC", msgs)
+
+    if (activeCall) {
+      console.log("videoCC", activeCall)
+  setVideoCall(activeCall);
+} else {
+  setVideoCall(null);
+}
+
+    setMessages(msgs); // ✅ still set all messages
     setLoading(false);
   });
 
   return () => unsub();
 }, [familyId]);
 
-  return { messages, loading, loadings: loading };
+
+  return { messages,videoCall, loading, loadings: loading };
 }
 
 // hooks/useFamilyChat.ts (continued)

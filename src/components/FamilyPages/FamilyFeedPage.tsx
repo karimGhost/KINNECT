@@ -36,7 +36,9 @@ const {userData} = useAuth()
 
   // Fetch posts for this family
   useEffect(() => {
+    if(!userData) return;
     const fetchPosts = async () => {
+
       const postsRef = collection(db, "families", userData?.familyId, "posts");
       const q = query(postsRef, orderBy("timestamp", "desc")); // latest first
       const snap = await getDocs(q);
