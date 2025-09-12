@@ -1,5 +1,5 @@
 'use client'
-import type { Group } from '@/lib/types';
+import type { Group, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Video, Phone, MapPin, MoreVertical } from 'lucide-react';
@@ -17,6 +17,7 @@ interface ChatHeaderProps {
   callId?: string | null;
   videoCall: any;
 
+  
 }
 
 export default function ChatHeader({ group , onOpenChange, callId , videoCall}: ChatHeaderProps) {
@@ -50,23 +51,50 @@ const currentuserIs = {
   } = useWebRTCCall({ currentuserIs });
   const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
 
+const normalizeMembersForCall = (members: User[]) =>
+  members.map((m) => ({
+    id: (m as any).id ?? (m as any).uid ?? String((m as any).uid ?? (m as any).id ?? ""),
+    name: (m as any).fullName ?? (m as any).name ?? "",
+    avatar: (m as any).avatar ?? (m as any).avatarUrl ?? "",
+  })) as Member[];
+
+  const EndCallMessage = async () => {
+  try {
+    if (!groupId) return;
+    const messagesCol = collection(db, "families", groupId, "messages");
+    // customize the message shape to match your app's messages schema
+    await addDoc(messagesCol, {
+      type: "Call_Ended",
+      ended: false,
+      from: { id: currentuserIs?.id, name: currentuserIs?.name },
+      text: `${currentuserIs?.name} started a video call`,
+      // optional: any extra metadata your chat uses:
+      metadata: { callId },
+    });
+
+
+  } catch (err) {
+    console.error("Failed to post call message:", err);
+  }
+};
+
  
   const handleAccept = async (id: string | null) => {
-
-    const idToUse = id ?? hookCallId;
-  
-    if (!idToUse) {
-      console.error("No call id to accept");
-      return;
-    }
-    try {
-      await acceptCall(idToUse, members);
-      setInternalCallId(idToUse);
-      setIsVideoCallOpen(true)
-    } catch (err) {
-      console.error("acceptCall error", err);
-    }
+ const idToUse = id ?? hookCallId;
+  if (!idToUse) return;
+  const targets = normalizeMembersForCall(members);
+  try {
+    await acceptCall(idToUse, targets);
+    setInternalCallId(idToUse);
+    setIsVideoCallOpen(true)
+  } catch (err) {
+    console.error("acceptCall error", err);
+  }
   };
+
+  const handleopen =()=>{
+    setIsVideoCallOpen(false)
+  }
 
   const handleDecline = async (id: string | null) => {
     const idToUse = id ?? hookCallId;
@@ -128,24 +156,25 @@ console.log("videoCall", videoCall)
 
 
 
-    {videoCall?.ended  && videoCall?.author.id  !== user?.uid && (
-             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
+    {/* {videoCall?.ended  && videoCall?.author.id  !== user?.uid && (
+             <div className="absolute top-10 inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
                <p className="text-xl">{videoCall?.author?.name} is calling...</p>
                <div className="flex gap-4">
                  <Button onClick={() => handleAccept(videoCall?.callId)} className="bg-green-600 text-white">Accept</Button>
                  <Button onClick={() => handleDecline(videoCall?.callId)} variant="destructive">Decline</Button>
                </div>
              </div>
-           )}
+           )} */}
 
 
 <VideoCallDialog
  callerId={videoCall?.callId}
+ videocalling={videoCall}
   isOpen={isVideoCallOpen}
   onOpenChange={setIsVideoCallOpen}
   members={approvedMembers}        // array of {id,name,avatar,fullName}
   groupId={userData?.familyId}  
-  
+  setIsVideoCallOpen={setIsVideoCallOpen}
 currentuserIs={{
         id: user?.uid,
         name: userData?.fullName,

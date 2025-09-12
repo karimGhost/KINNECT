@@ -28,10 +28,12 @@ interface VideoCallDialogProps {
   members: User[]; 
   groupId: string; // <-- NEW: id of the group / chat where we'll post the call invite
   callerId: string;
+  setIsVideoCallOpen: any;
+  videocalling: any;
 }
 
 
-export default function VideoCallDialog({ currentuserIs, isOpen,groupId, onOpenChange, callId, members , callerId}: VideoCallDialogProps) {
+export default function VideoCallDialog({videocalling, setIsVideoCallOpen, currentuserIs, isOpen,groupId, onOpenChange, callId, members , callerId}: VideoCallDialogProps) {
   const {
     localVideoRef,
     getRemoteVideoRef,
@@ -41,6 +43,7 @@ export default function VideoCallDialog({ currentuserIs, isOpen,groupId, onOpenC
     hangUp,
     toggleMute,
     toggleVideo,
+ 
     muted,
     videoOn,
     status,
@@ -94,18 +97,26 @@ export default function VideoCallDialog({ currentuserIs, isOpen,groupId, onOpenC
   //     // optionally: send chat message with callId to members
   //   } catch (err) {
   //     console.error("startCall error", err);
-  //   }
+  //   }   const id = await startCall(members);
+    // setInternalCallId(id);
   // };
 
+  const [isopen, setisopen] = useState(true)
+
   const handleAccept = async () => {
-    const idToUse = internalCallId ?? hookCallId;
+    const idToUse = callerId  ;
     if (!idToUse) {
       console.error("No call id to accept");
       return;
     }
     try {
+
       await acceptCall(idToUse, members);
       setInternalCallId(idToUse);
+setIsVideoCallOpen(true)
+setisopen(false);
+
+      onOpenChange(true)
     } catch (err) {
       console.error("acceptCall error", err);
     }
@@ -215,6 +226,7 @@ const handleStart = async () => {
   try {
     const id = await startCall(members);
     setInternalCallId(id);
+    console.log("7a8938c8")
     // post call id to group chat so others can join
     await postCallMessage(id);
     console.log("Call started with id:", id);
@@ -225,8 +237,26 @@ const handleStart = async () => {
 
 
 useEffect(() => {
-console.log("members", members)
+console.log("members",  user?.uid)
 },[members])
+
+
+if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isopen  ){
+
+  return(
+
+      
+            <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
+              <p className="text-xl">{} is calling...</p>
+              <div className="flex gap-4">
+                <Button onClick={handleAccept} className="bg-green-600 text-white">Accept</Button>
+                <Button onClick={handleDecline} variant="destructive">Decline</Button>
+              </div>
+            </div>
+          
+  )
+}
+ 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -251,7 +281,7 @@ console.log("members", members)
 
         <div className={cn("flex-1 grid gap-2 p-4 overflow-y-auto bg-muted/20", getGridCols(members.length))}>
          {members.map((member) => {
-  const memberId = String(member.uid);
+const memberId = member.id ?? member.uid;
   const isCurrentUser = memberId === currentuserIs?.id;
 
   const remoteRef = getRemoteVideoRef(memberId);
@@ -300,15 +330,7 @@ console.log("members", members)
 
 
           {/* Ringing overlay (for non-caller participants) */}
-          {status === "ringing" && caller && caller.id !== currentuserIs.id && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
-              <p className="text-xl">{caller.name} is calling...</p>
-              <div className="flex gap-4">
-                <Button onClick={handleAccept} className="bg-green-600 text-white">Accept</Button>
-                <Button onClick={handleDecline} variant="destructive">Decline</Button>
-              </div>
-            </div>
-          )}
+       
         </div>
 
         {/* Controls */}

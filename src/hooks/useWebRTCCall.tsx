@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-type Member = { id: string; name?: string; avatar?: string; fullName?: string };
+type Member = any;
 
 const RTC_CONFIG: RTCConfiguration = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -235,6 +235,16 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
 const acceptCall = useCallback(
   async (id: string, members: Member[]) => {
     await startLocalStream();
+if (localVideoRef.current && localStreamRef.current) {
+  console.log("✅ Attaching local stream to video element");
+  localVideoRef.current.srcObject = localStreamRef.current;
+  localVideoRef.current.muted = true;
+  await localVideoRef.current.play().catch((err) => {
+    console.warn("Local video play error:", err);
+  });
+}
+
+
     const callRef = doc(db, "calls", id);
     callDocRef.current = callRef;
     setCallId(id);
@@ -277,7 +287,7 @@ const acceptCall = useCallback(
         new RTCSessionDescription({ type: offer.type, sdp: offer.sdp })
       ).catch(console.error);
 
-      // create answer and write it
+      // create answer and write it src
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       await updateDoc(callRef, {
@@ -423,3 +433,6 @@ const acceptCall = useCallback(
     callId,
   };
 }
+
+
+// callerCandidates
