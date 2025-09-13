@@ -232,17 +232,25 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
   [createPeerConnection, currentuserIs?.id, currentuserIs?.name, startLocalStream]
 );
 
+useEffect(() => {
+  if (localVideoRef.current && localStreamRef.current) {
+    console.log("✅ Attaching local stream after ref mount");
+    localVideoRef.current.srcObject = localStreamRef.current;
+    localVideoRef.current.muted = true;
+    localVideoRef.current
+      .play()
+      .catch((err) => console.warn("Local video play error:", err));
+  }
+}, [localVideoRef.current, localStreamRef.current]);
 const acceptCall = useCallback(
   async (id: string, members: Member[]) => {
     await startLocalStream();
-if (localVideoRef.current && localStreamRef.current) {
-  console.log("✅ Attaching local stream to video element");
-  localVideoRef.current.srcObject = localStreamRef.current;
-  localVideoRef.current.muted = true;
-  await localVideoRef.current.play().catch((err) => {
-    console.warn("Local video play error:", err);
-  });
-}
+
+// if (localVideoRef.current && localStreamRef.current) {
+//   localVideoRef.current.srcObject = localStreamRef.current;
+//   localVideoRef.current.muted = true;
+//   await localVideoRef.current.play().catch(() => {});
+// }
 
 
     const callRef = doc(db, "calls", id);

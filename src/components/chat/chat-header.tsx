@@ -188,6 +188,13 @@ currentuserIs={{
         isOpen={isAudioCallOpen}
         onOpenChange={setIsAudioCallOpen}
         members={approvedMembers}
+        currentuserIs={{
+        id: user?.uid,
+        name: userData?.fullName,
+        avatar: userData?.avatarUrl,
+        familyId: userData?.familyId,
+        isOnline: userData?.isActive
+      }}
       />
       <LocationDialog isOpen={isLocationOpen} onOpenChange={setIsLocationOpen} members={approvedMembers} />
     </>

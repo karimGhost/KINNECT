@@ -62,6 +62,8 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
 
 
   const EndCallMessage = async () => {
+
+    if(videocalling?.author?.id  !== user?.uid) return;
   try {
     if (!groupId) return;
     const messagesCol = collection(db, "families", groupId, "messages");
@@ -112,6 +114,8 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
     try {
 
       await acceptCall(idToUse, members);
+          console.log("started", idToUse)
+
       setInternalCallId(idToUse);
 setIsVideoCallOpen(true)
 setisopen(false);
@@ -123,10 +127,11 @@ setisopen(false);
   };
 
   const handleDecline = async () => {
-    const idToUse = internalCallId ?? hookCallId;
+    const idToUse = callerId  ;
     if (!idToUse) return;
     await declineCall(idToUse);
     setInternalCallId(null);
+    setisopen(false)
   };
 
 
@@ -156,12 +161,28 @@ setisopen(false);
 
 
   const handleEnd = async () => {
-    endCall()
+       if(videocalling?.author?.id  !== user?.uid) {
+         await hangUp();
+    onOpenChange(false);
+    setInternalCallId(null);
+handleDecline()
+
+       }else{
+endCall();
+
 EndCallMessage()
 
     await hangUp();
     onOpenChange(false);
     setInternalCallId(null);
+
+       }
+
+    
+
+
+
+
   };
 
   // responsive grid helper
@@ -226,7 +247,7 @@ const handleStart = async () => {
   try {
     const id = await startCall(members);
     setInternalCallId(id);
-    console.log("7a8938c8")
+    console.log("started", id)
     // post call id to group chat so others can join
     await postCallMessage(id);
     console.log("Call started with id:", id);
@@ -237,7 +258,12 @@ const handleStart = async () => {
 
 
 useEffect(() => {
-console.log("members",  user?.uid)
+   {members.map((member) => {
+const memberId = member.id ?? member.uid;
+  const isCurrentUser = memberId === user?.uid;
+
+console.log("members",  memberId , user?.uid)
+   })}
 },[members])
 
 
@@ -249,7 +275,7 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
             <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
               <p className="text-xl">{} is calling...</p>
               <div className="flex gap-4">
-                <Button onClick={handleAccept} className="bg-green-600 text-white">Accept</Button>
+                <Button onClick={handleAccept} className="bg-green-600 text-white">Join Vcall</Button>
                 <Button onClick={handleDecline} variant="destructive">Decline</Button>
               </div>
             </div>
@@ -259,12 +285,22 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
  
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    
+    <Dialog open={isOpen} onOpenChange={(open) => {
+    if (!open) {
+      // 🔴 user clicked X or pressed ESC
+      setIsVideoCallOpen(false); 
+      // <-- your custom cleanup function
+    }
+    onOpenChange(open); // still update state so dialog closes
+  }}
+>
       <DialogContent className="max-w-6xl h-[80vh] flex flex-col p-0">
         <DialogHeader className="p-4 border-b flex items-center justify-between">
           <div>
             <DialogTitle>Team Sync - Video Call</DialogTitle>
             <DialogDescription>{members.length} participants</DialogDescription>
+            
           </div>
 
           <div className="flex items-center gap-2">
@@ -282,7 +318,7 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
         <div className={cn("flex-1 grid gap-2 p-4 overflow-y-auto bg-muted/20", getGridCols(members.length))}>
          {members.map((member) => {
 const memberId = member.id ?? member.uid;
-  const isCurrentUser = memberId === currentuserIs?.id;
+  const isCurrentUser = memberId === user?.uid;
 
   const remoteRef = getRemoteVideoRef(memberId);
 
@@ -357,7 +393,7 @@ const memberId = member.id ?? member.uid;
             variant="destructive"
             size="icon"
             className="rounded-full h-12 w-12"
-            onClick={handleEnd}
+            onClick={ handleEnd }
           >
             <PhoneOff className="h-6 w-6" />
           </Button>

@@ -30,7 +30,7 @@ export default function LocationDialog({ isOpen, onOpenChange, members }: Locati
                          <MapView apiKey={apiKey} members={members} />
                     ) : (
                         <div className="flex items-center justify-center h-full">
-                            <p className="text-muted-foreground p-4 text-center">Google Maps API Key not configured. Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables.</p>
+                            <p className="text-muted-foreground p-4 text-center"> Maps cant be loaded this time please try again after some time or paste a link to share location.</p>
                         </div>
                     )}
                 </div>

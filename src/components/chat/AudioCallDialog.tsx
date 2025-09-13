@@ -2,29 +2,62 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Mic, PhoneOff } from "lucide-react"
 import type { User } from "@/lib/types"
+import { useWebRTCAudioCall } from "@/hooks/useWebRTCAudioCall"
 
 interface AudioCallDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   members: User[]
+  currentuserIs: any;
 }
 
-export default function AudioCallDialog({ isOpen, onOpenChange, members }: AudioCallDialogProps) {
+export default function AudioCallDialog({ isOpen, onOpenChange, members, currentuserIs } : AudioCallDialogProps) {
+  const {
+    getLocalAudioRef,
+    getRemoteAudioRef,
+    startCall,
+    acceptCall,
+    hangUp,
+    toggleMute,
+    isCalling,
+    muted,
+    status,
+    caller,
+    callId,
+  } = useWebRTCAudioCall({ currentuserIs });
+
+  // Start a call (caller)
+  const handleStart = async () => {
+    const id = await startCall(members);
+    console.log("audio call started", id);
+  };
+
+  // Accept (callee) — you should pass the callId you received in a chat message or UI
+  const handleAccept = async () => {
+    if (!callId) return;
+    await acceptCall(callId, members);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md flex flex-col items-center justify-center text-center gap-4 p-6">
-        <DialogHeader>
-          <DialogTitle>Audio Call</DialogTitle>
-          <DialogDescription>{members.length} participants</DialogDescription>
-        </DialogHeader>
-        <Mic className="h-16 w-16 text-primary" />
-        <div className="flex gap-4">
-          <Button variant="secondary">Mute</Button>
-          <Button variant="destructive" onClick={() => onOpenChange(false)}>
-            <PhoneOff className="mr-2 h-4 w-4" /> End
-          </Button>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) hangUp(); onOpenChange(open); }}>
+      <DialogContent className="...">
+        <DialogHeader> ... </DialogHeader>
+
+        {/* Local preview (muted) */}
+        <audio ref={getLocalAudioRef} autoPlay playsInline />
+
+        {/* remote audios */}
+        {members.map((m) => (
+          <audio key={m.id ?? m.uid} ref={getRemoteAudioRef(m.id ?? m.uid)} autoPlay playsInline />
+        ))}
+
+        <div>
+          <Button onClick={handleStart}>Start</Button>
+          <Button onClick={handleAccept}>Accept call</Button>
+          <Button onClick={() => { toggleMute(); }}>{muted[currentuserIs?.id] ? "Unmute" : "Mute"}</Button>
+          <Button variant="destructive" onClick={() => { hangUp(); onOpenChange(false); }}>End</Button>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
