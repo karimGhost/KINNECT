@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 
 export default function ChatLayout() {
   const { userData, user } = useAuth()
-  const { messages, loading , videoCall} = useFamilyChat(userData?.familyId)
+  const { messages, loading , videoCall, audiocall} = useFamilyChat(userData?.familyId)
  const containerRef = useRef<HTMLDivElement | null>(null)
 
    const router = useRouter();
@@ -31,6 +31,7 @@ export default function ChatLayout() {
   
   
  <ChatView
+ audiocall={audiocall}
  videoCall={videoCall}
       messages={messages}
       containerRef={containerRef}

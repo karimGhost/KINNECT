@@ -24,7 +24,7 @@ interface VideoCallDialogProps {
   currentuserIs: Currentuser;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  callId?: string | null;
+  callId?: string ;
   members: User[]; 
   groupId: string; // <-- NEW: id of the group / chat where we'll post the call invite
   callerId: string;
@@ -48,6 +48,7 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
     videoOn,
     status,
     caller,
+    ID,
     callId: hookCallId,
   } = useWebRTCCall({ currentuserIs });
 
@@ -160,6 +161,9 @@ setisopen(false);
 };
 
 
+
+
+
   const handleEnd = async () => {
        if(videocalling?.author?.id  !== user?.uid) {
          await hangUp();
@@ -185,6 +189,20 @@ EndCallMessage()
 
   };
 
+
+  useEffect(() => {
+
+    if( videocalling?.author?.id  === user?.uid && !internalCallId && status !== "ringing"){
+handleEnd();
+
+setIsVideoCallOpen(true)
+setisopen(false);
+
+    } 
+
+
+}, [videocalling, status, internalCallId])
+
   // responsive grid helper
   const getGridCols = (count: number) => {
     if (count <= 1) return "grid-cols-1";
@@ -199,7 +217,7 @@ EndCallMessage()
 
 
 // inside the component, add this helper to post a message
-const postCallMessage = async (callId: string) => {
+const postCallMessage = async (callId: any) => {
   try {
     if (!groupId) return;
     const messagesCol = collection(db, "families", groupId, "messages");
@@ -273,7 +291,7 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
 
       
             <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
-              <p className="text-xl">{} is calling...</p>
+              <p className="text-xl">{videocalling?.author?.name} is calling...</p>
               <div className="flex gap-4">
                 <Button onClick={handleAccept} className="bg-green-600 text-white">Join Vcall</Button>
                 <Button onClick={handleDecline} variant="destructive">Decline</Button>
@@ -304,14 +322,21 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
           </div>
 
           <div className="flex items-center gap-2">
-            {!internalCallId && status !== "ringing" && (
+            {!internalCallId && status  !== "ringing" && (
+
               <Button onClick={handleStart} variant="secondary">Start Call</Button>
             )}
+           
             {internalCallId && (
               <Button onClick={() => navigator.clipboard?.writeText(internalCallId)} variant="outline">
                 Copy callId
               </Button>
             )}
+
+             {
+              videocalling?.ended         &&      <Button onClick={handleAccept} variant="secondary">on going Call</Button>
+
+            }
           </div>
         </DialogHeader>
 

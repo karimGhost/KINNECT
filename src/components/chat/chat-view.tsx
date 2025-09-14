@@ -15,9 +15,9 @@ interface ChatViewProps {
   currentUser: User
   containerRef: any
   videoCall: any
-
+audiocall: any
 }
-export default function ChatView({ messages, currentUser,videoCall, containerRef }: ChatViewProps) {
+export default function ChatView({ messages, currentUser,videoCall, containerRef, audiocall }: ChatViewProps) {
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const { userData, user } = useAuth();
 
@@ -33,7 +33,7 @@ export default function ChatView({ messages, currentUser,videoCall, containerRef
   return (
 <div className="flex flex-col h-[100dvh]  h-screen bg-background max-w-2xl mx-auto w-full">
       {/* Chat Header */}
-      <ChatHeader videoCall={videoCall} group={{ id: "famId", avatar: "👨‍👩‍👧‍👦", members: members}} onOpenChange={() => void 0}  />
+      <ChatHeader audiocall={audiocall} videoCall={videoCall} group={{ id: "famId", avatar: "👨‍👩‍👧‍👦", members: members}} onOpenChange={() => void 0}  />
 
   {/* Scrollable messages */}
   <div     ref={containerRefs}

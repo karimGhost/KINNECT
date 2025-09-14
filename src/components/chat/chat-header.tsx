@@ -16,11 +16,11 @@ interface ChatHeaderProps {
     onOpenChange: (open: boolean) => void;
   callId?: string | null;
   videoCall: any;
-
+audiocall: any;
   
 }
 
-export default function ChatHeader({ group , onOpenChange, callId , videoCall}: ChatHeaderProps) {
+export default function ChatHeader({ group , onOpenChange, callId , videoCall, audiocall}: ChatHeaderProps) {
   const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
     const [isAudioCallOpen, setIsAudioCallOpen] = useState(false)
@@ -185,9 +185,12 @@ currentuserIs={{
 
 
          <AudioCallDialog
+          callerId={audiocall?.callId}
+audiocaller={audiocall}
         isOpen={isAudioCallOpen}
         onOpenChange={setIsAudioCallOpen}
         members={approvedMembers}
+        groupId={userData?.familyId}
         currentuserIs={{
         id: user?.uid,
         name: userData?.fullName,

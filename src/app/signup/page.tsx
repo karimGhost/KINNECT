@@ -58,6 +58,7 @@ const getFriendlySignupError = (code: string) => {
         country: country || "unspesified",
         city: city || "unspecified"
         },
+        id: cred.user.uid,
         age: age || "0",
         ethnicity: ethnicity || "unknown",
         approved: false,

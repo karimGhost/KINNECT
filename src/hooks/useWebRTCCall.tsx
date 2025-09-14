@@ -12,6 +12,7 @@ import {
   getDoc,
   DocumentReference,
   FirestoreError,
+  deleteField,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -36,7 +37,7 @@ export function useWebRTCCall({ currentuserIs }: { currentuserIs: { id: string; 
   const [callId, setCallId] = useState<string | null>(null);
   const [status, setStatus] = useState<"ringing" | "active" | "ended" | null>(null);
   const [caller, setCaller] = useState<{ id: string; name?: string } | null>(null);
-
+const [ID, setId] = useState<any>()
   // Normalize ID helper
   const normalize = (id: any) => (id === undefined || id === null ? String(id) : String(id));
 
@@ -146,12 +147,13 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
 
   const startCall = useCallback(
   async (members: Member[]) => {
+ const id = crypto.randomUUID();
+           setCallId(id);
+setId(id)
     await startLocalStream();
 
-    const id = crypto.randomUUID();
     const callRef = doc(db, "calls", id);
     callDocRef.current = callRef;
-    setCallId(id);
 
     const offers: Record<string, any> = {};
 
@@ -242,6 +244,7 @@ useEffect(() => {
       .catch((err) => console.warn("Local video play error:", err));
   }
 }, [localVideoRef.current, localStreamRef.current]);
+
 const acceptCall = useCallback(
   async (id: string, members: Member[]) => {
     await startLocalStream();
@@ -257,10 +260,24 @@ const acceptCall = useCallback(
     callDocRef.current = callRef;
     setCallId(id);
 
-    await updateDoc(callRef, {
+    // await updateDoc(callRef, {
+    //   status: "active",
+    //   [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true },
+    // });
+
+     await updateDoc(callRef, {
       status: "active",
       [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true },
+      [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(), // 🔑 trigger fresh offer
     });
+
+// await setDoc(callRef, {
+//   status: "active",
+//   participants: {
+//     [normalize(currentuserIs?.id)]: { muted: false, videoOn: true },
+//   },
+// }, { merge: true });
+
     setStatus("active");
 
     const snap = await getDoc(callRef);
@@ -345,6 +362,54 @@ const acceptCall = useCallback(
   [createPeerConnection, currentuserIs?.id, startLocalStream]
 );
 
+
+
+
+
+useEffect(() => {
+  if (!callId) return;
+  const callRef = doc(db, "calls", callId);
+
+  const unsub = onSnapshot(callRef, async (snap) => {
+    if (!snap.exists()) return;
+    const d = snap.data();
+
+    // 📌 normal call status, offers, answers, ICE handling here...
+    // ---------------------------------------------
+
+    // 🔄 renegotiation handler
+    if (d.renegotiate) {
+      for (const [peerId, ts] of Object.entries(d.renegotiate)) {
+        if (peerId !== currentuserIs?.id) {
+          console.log("🔄 Renegotiation requested by", peerId);
+
+          const pairKey =
+            normalize(currentuserIs?.id) + "_" + normalize(peerId);
+
+          // create fresh peer connection
+          const pc = createPeerConnection(pairKey, peerId, true, callRef);
+
+          // new offer
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+
+          // write to Firestore
+          await updateDoc(callRef, {
+            [`offers.${pairKey}`]: {
+              type: offer.type,
+              sdp: offer.sdp,
+              from: currentuserIs?.id,
+              to: peerId,
+            },
+            [`renegotiate.${peerId}`]: deleteField(), // ✅ cleanup
+          });
+        }
+      }
+    }
+  });
+
+  return () => unsub();
+}, [callId, currentuserIs]);
 
   const joinCall = useCallback(async (id: string, members: Member[]) => acceptCall(id, members), [acceptCall]);
 
@@ -439,6 +504,7 @@ const acceptCall = useCallback(
     status,
     caller,
     callId,
+    ID
   };
 }
 

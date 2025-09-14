@@ -30,8 +30,7 @@ export default function ExtraSignupPage() {
         phoneNumber: user.phoneNumber || null,
         fullName,
      avatarUrl:user?.photoURL,
-
-        originalName,
+id: user.uid,
         familyName,
         age: Number(age),
          location:{

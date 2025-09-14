@@ -19,7 +19,7 @@ export interface ChatMessage {
   text?: string; // make optional since not all messages have text
   author: User;
   createdAt: Date | null; // instead of any
-  type: "text" | "image" | "video" | "file" | "call_invite";
+  type: "text" | "image" | "video" | "file" | "call_invite" | "V_call_invite";
   
   // for media messages
   fileUrl?: string | null;
@@ -42,7 +42,7 @@ export function useFamilyChat(familyId?: string) {
   const [loading, setLoading] = useState(true);
 const [videoCall, setVideoCall] = useState<ChatMessage | null>(null);
   // const [loadings, setLoadings] = useState(true);
-
+const [audiocall, setaudiocall] = useState<ChatMessage | null>(null);
  useEffect(() => {
   if (!familyId) return;
 
@@ -76,6 +76,25 @@ const [videoCall, setVideoCall] = useState<ChatMessage | null>(null);
   setVideoCall(null);
 }
 
+
+ const activeVCall = msgs.find(
+      (m) =>
+        m.type === "V_call_invite" &&
+        m.ended === true && // not ended yet
+        m.callId // has a callId
+    );
+      // console.log("videoCC", msgs)
+
+    if (activeVCall) {
+      console.log("videoCC", activeVCall)
+  setaudiocall(activeVCall);
+} else {
+  setaudiocall(null);
+}
+
+
+
+
     setMessages(msgs); // ✅ still set all messages
     setLoading(false);
   });
@@ -84,7 +103,7 @@ const [videoCall, setVideoCall] = useState<ChatMessage | null>(null);
 }, [familyId]);
 
 
-  return { messages,videoCall, loading, loadings: loading };
+  return { messages,videoCall, loading, audiocall, loadings: loading };
 }
 
 // hooks/useFamilyChat.ts (continued)
