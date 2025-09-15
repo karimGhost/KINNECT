@@ -8,6 +8,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useIncomingCalls } from "@/hooks/useIncomingCalls"
 interface AudioCallDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
@@ -36,8 +37,20 @@ export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members
 
     const {user, userData} = useAuth();
   
+const [incomingCall, setIncomingCall] = useState<any>();
+
+
 const router = useRouter()
 
+
+
+useIncomingCalls(currentuserIs.id, (callId: any, callData: { initiator: any; members: any }) => {
+  setIncomingCall({
+    id: callId,
+    from: callData.initiator,
+    members: callData.members,
+  });
+});
 
       const EndCallMessage = async () => {
     
@@ -140,8 +153,9 @@ setisopen(false);
 
   // Accept (callee)
   const handleAccept = async () => {
-    if (!callerId) return
-    await acceptCall(callerId, members);
+     if (!incomingCall) return;
+  await acceptCall(incomingCall?.id, incomingCall?.members);
+
     onOpenChange(true)
 setisopen(false);
   }
@@ -149,8 +163,12 @@ setisopen(false);
   const isCaller = callerId !== currentuserIs?.id
 
 
-if( audiocaller?.ended  &&   audiocaller?.author?.id  !== user?.uid && isopen){
-  return(
+if (
+  incomingCall &&
+  incomingCall.from !== currentuserIs.id &&
+  incomingCall.status === "ringing" &&
+  isopen
+) {  return(
  <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
               <p className="text-xl">{audiocaller?.author?.name} is calling...</p>
               <div className="flex gap-4">
