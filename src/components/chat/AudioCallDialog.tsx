@@ -6,7 +6,8 @@ import { useWebRTCAudioCall } from "@/hooks/useWebRTCAudioCall"
 import { addDoc, collection, getDocs, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 interface AudioCallDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
@@ -19,6 +20,7 @@ interface AudioCallDialogProps {
 
 export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members, currentuserIs, groupId , audiocaller}: AudioCallDialogProps) {
   const {
+    playAllRemote,
     getLocalAudioRef,
     getRemoteAudioRef,
     startCall,
@@ -34,6 +36,30 @@ export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members
 
     const {user, userData} = useAuth();
   
+const router = useRouter()
+
+
+      const EndCallMessage = async () => {
+    
+        if(audiocaller?.author?.id  !== user?.uid) return;
+      try {
+        if (!groupId) return;
+        const messagesCol = collection(db, "families", groupId, "messages");
+        // customize the message shape to match your app's messages schema
+        await addDoc(messagesCol, {
+          type: "Call_Ended",
+          ended: false,
+          from: { id: currentuserIs?.id, name: currentuserIs?.name },
+          text: `${currentuserIs?.name} started a video call`,
+          // optional: any extra metadata your chat uses:
+          metadata: { callId },
+        });
+    
+    
+      } catch (err) {
+        console.error("Failed to post call message:", err);
+      }
+    };
   const postCallMessage = async (callId: string) => {
     try {
       if (!groupId) return;
@@ -75,6 +101,30 @@ export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members
     }
   };
   
+
+  const hangdlehungup = () => {
+
+    if(audiocaller?.author?.id  === user?.uid){
+        EndCallMessage();
+
+   router.refresh();
+
+    }
+  hangUp();
+   onOpenChange(false)
+setisopen(false);
+}
+
+  useEffect(() => {
+  
+      if( audiocaller?.author?.id  === user?.uid && audiocaller?.ended  && status === "ended"){
+  hangdlehungup();
+  
+  
+      } 
+  
+  
+  }, [audiocaller, status])
   
   // Start a call (caller)
   const handleStart = async () => {
@@ -86,11 +136,7 @@ export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members
   const [isopen, setisopen] = useState(true)
 
 
-const hangdlehungup = () => {
-  hangUp();
-   onOpenChange(false)
-setisopen(false);
-}
+
 
   // Accept (callee)
   const handleAccept = async () => {
@@ -103,7 +149,7 @@ setisopen(false);
   const isCaller = callerId !== currentuserIs?.id
 
 
-if( audiocaller?.ended  &&   isCaller && isopen){
+if( audiocaller?.ended  &&   audiocaller?.author?.id  !== user?.uid && isopen){
   return(
  <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
               <p className="text-xl">{audiocaller?.author?.name} is calling...</p>
@@ -146,9 +192,13 @@ if( audiocaller?.ended  &&   isCaller && isopen){
 
         {/* Remote audios */}
         {members.map((m) => (
-          <audio key={m.id ?? m.uid} ref={getRemoteAudioRef(m.id ?? m.uid)} autoPlay playsInline />
+          <audio key={m.id ?? m.uid}  autoPlay
+  playsInline
+  controls  ref={getRemoteAudioRef(m.id ?? m.uid)}   />
         ))}
-
+<Button onClick={() => playAllRemote()}>
+  Enable Audio
+</Button>
         {/* Action buttons depending on state */}
         <div className="flex gap-2">
           {!status && (

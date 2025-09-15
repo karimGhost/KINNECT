@@ -56,22 +56,55 @@ export function useWebRTCAudioCall({ currentuserIs }: { currentuserIs: { id: str
     }
   }, []);
 
-  const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
-    const pid = normalize(peerIdRaw);
-    return (el: HTMLAudioElement | null) => {
-      remoteAudioElems.current[pid] = el;
-      console.log(`[audioHook] remote audio element mounted for ${pid}`);
-      const s = inboundStreams.current[pid];
-      if (el && s) {
-        try {
-          el.srcObject = s;
-          el.play().catch((err) => console.warn(`[audioHook] remote play error ${pid}:`, err));
-        } catch (err) {
-          console.warn(`[audioHook] attach remote stream error ${pid}:`, err);
-        }
+  // const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
+  //   const pid = normalize(peerIdRaw);
+  //   return (el: HTMLAudioElement | null) => {
+  //     remoteAudioElems.current[pid] = el;
+  //     console.log(`[audioHook] remote audio element mounted for ${pid}`);
+  //     const s = inboundStreams.current[pid];
+  //     if (el && s) {
+  //       try {
+  //         el.srcObject = s;
+  //         el.play().catch((err) => console.warn(`[audioHook] remote play error ${pid}:`, err));
+  //       } catch (err) {
+  //         console.warn(`[audioHook] attach remote stream error ${pid}:`, err);
+  //       }
+  //     }
+  //   };
+  // }, []);
+
+
+  // in useWebRTCAudioCall (replace your getRemoteAudioRef)
+const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
+  const pid = normalize(peerIdRaw);
+  return (el: HTMLAudioElement | null) => {
+    remoteAudioElems.current[pid] = el;
+    console.log(`[audioHook] remote audio element mounted for ${pid}`);
+    const s = inboundStreams.current[pid];
+    if (el) {
+      // set helpful attributes (autoplay may still be blocked until user gesture)
+      el.autoplay = true;
+      el.playsInline = true;
+      // ensure it's not muted (we want to play remote audio)
+      try { el.muted = false; } catch {}
+    }
+    if (el && s) {
+      try {
+        el.srcObject = s;
+        // attempt to play and log any error
+        el.play().then(() => {
+          console.log(`[audioHook] remote audio play started for ${pid}`);
+        }).catch((err) => {
+          console.warn(`[audioHook] remote audio play blocked for ${pid}:`, err);
+        });
+        console.log(`[audioHook] attached inbound stream to element ${pid}`);
+      } catch (err) {
+        console.warn(`[audioHook] attach remote stream error ${pid}:`, err);
       }
-    };
-  }, []);
+    }
+  };
+}, []);
+
 
   // ----- ensure binding if ref mounts after stream/ontrack fired -----
   useEffect(() => {
@@ -140,6 +173,30 @@ export function useWebRTCAudioCall({ currentuserIs }: { currentuserIs: { id: str
       console.log(`[audioHook] createPeerConnection pairKey=${pairKey} remote=${remotePeerId} caller=${isCaller}`);
       const pc = new RTCPeerConnection(RTC_CONFIG);
 
+
+      pc.onicecandidate = async (ev) => {
+  console.log(`[audioHook] onicecandidate pair=${pairKey} remote=${remotePeerId} candidate=`, ev.candidate);
+  if (!ev.candidate || !callRef) return;
+  try {
+    const cand = ev.candidate.toJSON();
+    const colName = isCaller ? `callerCandidates_${pairKey}` : `calleeCandidates_${pairKey}`;
+    await addDoc(collection(callRef, colName), cand);
+    console.log(`[audioHook] wrote candidate to ${colName}`);
+  } catch (err) {
+    console.warn("[audioHook] add candidate failed", err);
+  }
+};
+
+
+pc.oniceconnectionstatechange = () =>
+  console.log(`[audioHook] iceConnectionState pair=${pairKey} remote=${remotePeerId}`, pc.iceConnectionState);
+
+pc.onconnectionstatechange = () =>
+  console.log(`[audioHook] connectionState pair=${pairKey} remote=${remotePeerId}`, pc.connectionState);
+
+pc.onnegotiationneeded = () =>
+  console.log(`[audioHook] negotiationneeded pair=${pairKey} remote=${remotePeerId}`);
+
       const localStream = localStreamRef.current;
       if (localStream) {
         for (const track of localStream.getTracks()) {
@@ -147,29 +204,36 @@ export function useWebRTCAudioCall({ currentuserIs }: { currentuserIs: { id: str
         }
       }
 
-      pc.ontrack = (ev) => {
-        const pid = normalize(remotePeerId);
-        console.log(`[audioHook] ontrack for pid=${pid}`, ev.streams);
-        let remoteStream = inboundStreams.current[pid] ?? new MediaStream();
+     pc.ontrack = (ev) => {
+  const pid = normalize(remotePeerId);
+  console.log(`[audioHook] ontrack for pid=${pid}`, ev.streams);
+  let remoteStream = inboundStreams.current[pid] ?? new MediaStream();
 
-        if (ev.streams && ev.streams.length > 0) {
-          inboundStreams.current[pid] = ev.streams[0];
-        } else if (ev.track) {
-          remoteStream.addTrack(ev.track);
-          inboundStreams.current[pid] = remoteStream;
-        }
+  if (ev.streams && ev.streams.length > 0) {
+    inboundStreams.current[pid] = ev.streams[0];
+  } else if (ev.track) {
+    remoteStream.addTrack(ev.track);
+    inboundStreams.current[pid] = remoteStream;
+  }
 
-        const el = remoteAudioElems.current[pid];
-        if (el && inboundStreams.current[pid]) {
-          try {
-            el.srcObject = inboundStreams.current[pid];
-            el.play().catch((err) => console.warn(`[audioHook] remote play error ${pid}:`, err));
-            console.log(`[audioHook] attached inbound stream to audio element ${pid}`);
-          } catch (err) {
-            console.warn(`[audioHook] failed to attach remote stream ${pid}:`, err);
-          }
-        }
-      };
+  const el = remoteAudioElems.current[pid];
+  if (el && inboundStreams.current[pid]) {
+    try {
+      el.srcObject = inboundStreams.current[pid];
+      // ensure not muted and try to play
+      try { el.muted = false; } catch {}
+      el.play().then(() => {
+        console.log(`[audioHook] attached inbound stream & play succeeded for ${pid}`);
+      }).catch((err) => {
+        console.warn(`[audioHook] attached inbound stream but play blocked for ${pid}:`, err);
+      });
+      console.log(`[audioHook] attached inbound stream to audio element ${pid}`);
+    } catch (err) {
+      console.warn(`[audioHook] failed to attach remote stream ${pid}:`, err);
+    }
+  }
+};
+
 
       pc.onicecandidate = async (ev) => {
         if (!ev.candidate || !callRef) return;
@@ -206,6 +270,22 @@ export function useWebRTCAudioCall({ currentuserIs }: { currentuserIs: { id: str
     setStatus(null);
     setCaller(null);
   }, []);
+
+
+  const playAllRemote = useCallback(async () => {
+  Object.entries(remoteAudioElems.current).forEach(([pid, el]) => {
+    if (!el) return;
+    try {
+      // attempt play, log results
+      el.muted = false;
+      el.play().then(() => console.log(`[audioHook] playAllRemote: play ok for ${pid}`))
+                .catch((err) => console.warn(`[audioHook] playAllRemote: play blocked for ${pid}`, err));
+    } catch (err) {
+      console.warn(`[audioHook] playAllRemote error for ${pid}`, err);
+    }
+  });
+}, []);
+
 
   // ----- startCall (caller) -----
   const startCall = useCallback(
@@ -457,6 +537,7 @@ export function useWebRTCAudioCall({ currentuserIs }: { currentuserIs: { id: str
   }, []);
 
   return {
+    playAllRemote,
     getLocalAudioRef,
     getRemoteAudioRef,
     startCall,
