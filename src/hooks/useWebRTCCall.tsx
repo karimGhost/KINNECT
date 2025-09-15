@@ -182,6 +182,8 @@ setId(id)
       participants: {
         [normalize(currentuserIs?.id)]: { muted: false, videoOn: true },
       },
+        members: members.map((m) => normalize(m.id ?? m.uid)), // 🔥 add this
+
       offers,
       createdAt: Date.now(),
     });

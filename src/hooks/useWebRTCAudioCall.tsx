@@ -56,7 +56,7 @@ export function useWebRTCAudioCall({ currentuserIs }: { currentuserIs: { id: str
     }
   }, []);
 
-  // const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
+  // const getRemoteAudioRef = useCallback((peerIdRaw: string) => { new RTC
   //   const pid = normalize(peerIdRaw);
   //   return (el: HTMLAudioElement | null) => {
   //     remoteAudioElems.current[pid] = el;
@@ -171,8 +171,17 @@ const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
   const createPeerConnection = useCallback(
     (pairKey: string, remotePeerId: string, isCaller: boolean, callRef: DocumentReference | null) => {
       console.log(`[audioHook] createPeerConnection pairKey=${pairKey} remote=${remotePeerId} caller=${isCaller}`);
-      const pc = new RTCPeerConnection(RTC_CONFIG);
-
+      // const pc = new RTCPeerConnection(RTC_CONFIG);
+const pc = new RTCPeerConnection({
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    {
+      urls: "turn:relay.metered.ca:80",
+      username: "openai",
+      credential: "openai123",
+    },
+  ],
+});
 
       pc.onicecandidate = async (ev) => {
   console.log(`[audioHook] onicecandidate pair=${pairKey} remote=${remotePeerId} candidate=`, ev.candidate);
@@ -322,6 +331,7 @@ pc.onnegotiationneeded = () =>
         participants: {
           [normalize(currentuserIs?.id)]: { muted: false },
         },
+ members: members.map((m) => normalize(m.id ?? m.uid)),
         offers,
         createdAt: Date.now(),
       });
