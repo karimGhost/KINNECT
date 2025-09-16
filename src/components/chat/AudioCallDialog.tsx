@@ -40,14 +40,19 @@ export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members
 const [incomingCall, setIncomingCall] = useState<any>();
 
 
+// useEffect(() => {
+// console.log("incomingCall", incomingCall)
+// }, [incomingCall])
+
 const router = useRouter()
 
 
-useIncomingCalls(currentuserIs.id, (callId: any, callData: { initiator: any; members: any }) => {
+useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller: any; members: any }) => {
   setIncomingCall({
     id: callId,
-    from: callData.initiator,
+    from: callData.caller.id,
     members: callData.members,
+    status: callData.status,
   });
 });
 

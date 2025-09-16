@@ -42,7 +42,7 @@ export function useWebRTCAudioCall({ currentuserIs }: { currentuserIs: { id: str
   const getLocalAudioRef = useCallback((el: HTMLAudioElement | null) => {
     localAudioElRef.current = el;
     if (el) {
-      console.log("[audioHook] local audio element mounted");
+      // console.log("[audioHook] local audio element mounted");
       // if stream already exists, attach it
       if (localStreamRef.current) {
         try {
@@ -93,11 +93,11 @@ const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
         el.srcObject = s;
         // attempt to play and log any error
         el.play().then(() => {
-          console.log(`[audioHook] remote audio play started for ${pid}`);
+          // console.log(`[audioHook] remote audio play started for ${pid}`);
         }).catch((err) => {
           console.warn(`[audioHook] remote audio play blocked for ${pid}:`, err);
         });
-        console.log(`[audioHook] attached inbound stream to element ${pid}`);
+        // console.log(`[audioHook] attached inbound stream to element ${pid}`);
       } catch (err) {
         console.warn(`[audioHook] attach remote stream error ${pid}:`, err);
       }
@@ -116,7 +116,7 @@ const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
           if (el.srcObject !== stream) {
             el.srcObject = stream;
             el.play().catch((err) => console.warn(`[audioHook] play failed for ${peerId}:`, err));
-            console.log(`[audioHook] attached inbound stream to element ${peerId}`);
+            // console.log(`[audioHook] attached inbound stream to element ${peerId}`);
           }
         } catch (err) {
           console.warn(`[audioHook] attach inbound error ${peerId}:`, err);
@@ -133,7 +133,7 @@ const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
           localEl.srcObject = localS;
           localEl.muted = true;
           localEl.play().catch((err) => console.warn("[audioHook] local re-play error:", err));
-          console.log("[audioHook] re-attached local stream to element");
+          // console.log("[audioHook] re-attached local stream to element");
         }
       } catch (err) {
         console.warn("[audioHook] attach local fallback error:", err);
@@ -147,7 +147,7 @@ const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
     try {
       const s = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       localStreamRef.current = s;
-      console.log("[audioHook] got local audio tracks:", s.getAudioTracks().map(t => t.label));
+      // console.log("[audioHook] got local audio tracks:", s.getAudioTracks().map(t => t.label));
 
       // attach if element exists
       if (localAudioElRef.current) {
@@ -170,7 +170,7 @@ const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
 
   const createPeerConnection = useCallback(
     (pairKey: string, remotePeerId: string, isCaller: boolean, callRef: DocumentReference | null) => {
-      console.log(`[audioHook] createPeerConnection pairKey=${pairKey} remote=${remotePeerId} caller=${isCaller}`);
+      // console.log(`[audioHook] createPeerConnection pairKey=${pairKey} remote=${remotePeerId} caller=${isCaller}`);
       // const pc = new RTCPeerConnection(RTC_CONFIG);
 const pc = new RTCPeerConnection({
   iceServers: [
@@ -184,7 +184,7 @@ const pc = new RTCPeerConnection({
 });
 
       pc.onicecandidate = async (ev) => {
-  console.log(`[audioHook] onicecandidate pair=${pairKey} remote=${remotePeerId} candidate=`, ev.candidate);
+  // console.log(`[audioHook] onicecandidate pair=${pairKey} remote=${remotePeerId} candidate=`, ev.candidate);
   if (!ev.candidate || !callRef) return;
   try {
     const cand = ev.candidate.toJSON();
@@ -197,14 +197,6 @@ const pc = new RTCPeerConnection({
 };
 
 
-pc.oniceconnectionstatechange = () =>
-  console.log(`[audioHook] iceConnectionState pair=${pairKey} remote=${remotePeerId}`, pc.iceConnectionState);
-
-pc.onconnectionstatechange = () =>
-  console.log(`[audioHook] connectionState pair=${pairKey} remote=${remotePeerId}`, pc.connectionState);
-
-pc.onnegotiationneeded = () =>
-  console.log(`[audioHook] negotiationneeded pair=${pairKey} remote=${remotePeerId}`);
 
       const localStream = localStreamRef.current;
       if (localStream) {
@@ -215,7 +207,7 @@ pc.onnegotiationneeded = () =>
 
      pc.ontrack = (ev) => {
   const pid = normalize(remotePeerId);
-  console.log(`[audioHook] ontrack for pid=${pid}`, ev.streams);
+  // console.log(`[audioHook] ontrack for pid=${pid}`, ev.streams);
   let remoteStream = inboundStreams.current[pid] ?? new MediaStream();
 
   if (ev.streams && ev.streams.length > 0) {
@@ -232,13 +224,13 @@ pc.onnegotiationneeded = () =>
       // ensure not muted and try to play
       try { el.muted = false; } catch {}
       el.play().then(() => {
-        console.log(`[audioHook] attached inbound stream & play succeeded for ${pid}`);
+        // console.log(`[audioHook] attached inbound stream & play succeeded for ${pid}`);
       }).catch((err) => {
         console.warn(`[audioHook] attached inbound stream but play blocked for ${pid}:`, err);
       });
-      console.log(`[audioHook] attached inbound stream to audio element ${pid}`);
+      // console.log(`[audioHook] attached inbound stream to audio element ${pid}`);
     } catch (err) {
-      console.warn(`[audioHook] failed to attach remote stream ${pid}:`, err);
+      // console.warn(`[audioHook] failed to attach remote stream ${pid}:`, err);
     }
   }
 };
@@ -287,8 +279,8 @@ pc.onnegotiationneeded = () =>
     try {
       // attempt play, log results
       el.muted = false;
-      el.play().then(() => console.log(`[audioHook] playAllRemote: play ok for ${pid}`))
-                .catch((err) => console.warn(`[audioHook] playAllRemote: play blocked for ${pid}`, err));
+      // el.play().then(() => console.log(`[audioHook] playAllRemote: play ok for ${pid}`))
+      //           .catch((err) => console.warn(`[audioHook] playAllRemote: play blocked for ${pid}`, err));
     } catch (err) {
       console.warn(`[audioHook] playAllRemote error for ${pid}`, err);
     }
@@ -359,7 +351,7 @@ pc.onnegotiationneeded = () =>
         if (data.renegotiate) {
           Object.entries<any>(data.renegotiate).forEach(async ([peerId, ts]) => {
             if (peerId !== normalize(currentuserIs?.id)) {
-              console.log("[audioHook] renegotiate requested by", peerId);
+              // console.log("[audioHook] renegotiate requested by", peerId);
               const pairKey = `${normalize(currentuserIs?.id)}_${peerId}`;
               const pc = createPeerConnection(pairKey, peerId, true, callRef);
               const offer = await pc.createOffer();
