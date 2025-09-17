@@ -73,7 +73,7 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
       type: "Call_Ended",
       ended: false,
       from: { id: currentuserIs?.id, name: currentuserIs?.name },
-      text: `${currentuserIs?.name} started a video call`,
+      text: `${currentuserIs?.name} ended a video call`,
       // optional: any extra metadata your chat uses:
       metadata: { callId },
     });

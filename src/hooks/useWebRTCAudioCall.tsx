@@ -79,7 +79,7 @@ const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
   const pid = normalize(peerIdRaw);
   return (el: HTMLAudioElement | null) => {
     remoteAudioElems.current[pid] = el;
-    console.log(`[audioHook] remote audio element mounted for ${pid}`);
+    // console.log(`[audioHook] remote audio element mounted for ${pid}`);
     const s = inboundStreams.current[pid];
     if (el) {
       // set helpful attributes (autoplay may still be blocked until user gesture)

@@ -38,11 +38,12 @@ export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members
     const {user, userData} = useAuth();
   
 const [incomingCall, setIncomingCall] = useState<any>();
+  const [isopen, setisopen] = useState(true)
 
 
 // useEffect(() => {
 // console.log("incomingCall", incomingCall)
-// }, [incomingCall])
+// }, [incomingCall]) {id: 'c2b9db30-14ae-4df0-8d8b-e2b72b0ae795', from: 'LbgXIt9xlTfZGLDGLZXcsBnOmF33', members: Array(4), status: 'ringing'}
 
 const router = useRouter()
 
@@ -70,7 +71,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
           type: "Call_Ended",
           ended: false,
           from: { id: currentuserIs?.id, name: currentuserIs?.name },
-          text: `${currentuserIs?.name} started a video call`,
+          text: `${currentuserIs?.name} ended a voice call`,
           // optional: any extra metadata your chat uses:
           metadata: { callId },
         });
@@ -135,16 +136,16 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
 setisopen(false);
 }
 
-  useEffect(() => {
+  // useEffect(() => {
   
-      if( audiocaller?.author?.id  === user?.uid && audiocaller?.ended  && status === "ended"){
-  hangdlehungup();
-  
-  
-      } 
+  //     if( audiocaller?.author?.id  === user?.uid && audiocaller?.ended  &&   incomingCall.status === "ringing"){
+  // hangdlehungup();
   
   
-  }, [audiocaller, status])
+  //     }  {id: 'c2b9db30-14ae-4df0-8d8b-e2b72b0ae795', from: 'LbgXIt9xlTfZGLDGLZXcsBnOmF33', members: Array(4), status: 'ringing'}
+  
+  
+  // }, [audiocaller, incomingCall])
   
   // Start a call (caller)
   const handleStart = async () => {
@@ -153,7 +154,6 @@ setisopen(false);
     postCallMessage(id)
     console.log("audio call started", id)
   }
-  const [isopen, setisopen] = useState(true)
 
 
 
@@ -219,7 +219,7 @@ if (
         {members.map((m) => (
           <audio key={m.id ?? m.uid}  autoPlay
   playsInline
-  controls  ref={getRemoteAudioRef(m.id ?? m.uid)}   />
+    ref={getRemoteAudioRef(m.id ?? m.uid)}   />
         ))}
 <Button onClick={() => playAllRemote()}>
   Enable Audio
@@ -227,7 +227,7 @@ if (
         {/* Action buttons depending on state */}
         <div className="flex gap-2">
           {!status && (
-            <Button onClick={handleStart} disabled={isCalling}>
+            <Button onClick={() =>  handleStart()} disabled={isCalling}>
               Start Call
             </Button>
           )}
