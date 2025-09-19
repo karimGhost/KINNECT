@@ -1,40 +1,106 @@
-'use client'
-import type { User } from '@/lib/types';
+'use client';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import MapView from '../map-view';
-import { useState, useEffect } from 'react';
+import { useLiveGroupLocations } from '@/hooks/useLiveGroupLocations';
+import { useAuth } from '@/hooks/useAuth';
+
+import dynamic from 'next/dynamic';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
+// Dynamically import MapView with no SSR to avoid window error
+const MapView = dynamic(() => import('../MapView'), {
+  ssr: false,
+});
 
 interface LocationDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  members: User[];
+  onShareLocation: (latitude: number, longitude: number) => void;
 }
 
-export default function LocationDialog({ isOpen, onOpenChange, members }: LocationDialogProps) {
-    const [apiKey, setApiKey] = useState<string | undefined>(undefined);
+export default function LocationDialog({ isOpen, onOpenChange, onShareLocation }: LocationDialogProps) {
+  const { userData } = useAuth();
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const members = useLiveGroupLocations(userData?.familyId);
+const router = useRouter()
 
-    useEffect(() => {
-        // This ensures env variable is read only on client side.
-        setApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
-    }, []);
+  useEffect(() => {
+console.log("members", members)
+  },[members])
+  const handleShareLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by this browser.');
+      return;
+    }
 
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl h-[70vh] flex flex-col p-0">
-                <DialogHeader className="p-4 border-b">
-                    <DialogTitle>Live Location</DialogTitle>
-                    <DialogDescription>Real-time location of group members</DialogDescription>
-                </DialogHeader>
-                <div className="flex-1 bg-muted/30">
-                    {apiKey ? (
-                         <MapView apiKey={apiKey} members={members} />
-                    ) : (
-                        <div className="flex items-center justify-center h-full">
-                            <p className="text-muted-foreground p-4 text-center"> Maps cant be loaded this time please try again after some time or paste a link to share location.</p>
-                        </div>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        onShareLocation(latitude, longitude);
+      },
+      (error) => {
+        setLocationError('Failed to retrieve location. Please try again.');
+      }
     );
+  };
+
+const handleTogglePrivate = async () => {
+  try {
+    const docRef = doc(db, 'families', userData?.familyId, 'locations', userData.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const currentData = docSnap.data();
+      const currentIsPrivate = currentData?.isPrivate || false;
+
+      // Toggle isPrivate
+      await setDoc(
+        docRef,
+        {
+          isPrivate: !currentIsPrivate,
+        },
+        { merge: true }
+      );
+
+      console.log(`Privacy toggled to ${!currentIsPrivate}`);
+      if(currentIsPrivate === true){
+          // location.reload();
+      }
+      // reload if you really need to refresh the UI (but better to update state)
+    } else {
+      console.log('Document does not exist!');
+    }
+  } catch (error) {
+    console.error('Error toggling privacy:', error);
+  }
+};
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl h-[70vh] flex flex-col p-0">
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle>Live Location</DialogTitle>
+          <DialogDescription>Real-time location of group members</DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 bg-muted/30">
+          <>
+  <MapView members={members} isOpen={isOpen} />
+            <div className="p-4">
+              <button
+              style={{cursor: "pointer" }}
+className="btn btn-primary hover:text-black hover:bg-white hover:rounded-md"
+                onClick={handleTogglePrivate}
+              >
+                Hide/show My Location 
+              </button>
+
+            </div>
+          </>
+          {locationError && (
+            <div className="text-red-500 p-2 text-center">{locationError}</div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

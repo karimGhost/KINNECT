@@ -11,6 +11,9 @@ import FamilyPendingPage from "@/components/FamilyPages/FamilyPendingPage";
 import ExtraSignupPage from "@/components/CompleteReg/ExtraSignupPage";
 import { useAuth } from "@/hooks/useAuth";
 import Spinner from "@/components/Animations/spiner";
+import { useAutoLocationShare } from '@/hooks/useAutoLocationShare';
+import 'leaflet/dist/leaflet.css';
+
 import { useRouter } from "next/navigation";
 export default function DashboardPage() {
   // const [user, authLoading] = useAuthState(auth); // 🔹 auth loading state
@@ -18,6 +21,7 @@ export default function DashboardPage() {
 const { userData, setUserData, loading} = useAuth()
 const router = useRouter()
   const [ user] = useAuthState(auth);
+  useAutoLocationShare(); //  live tracking
 
 
 

@@ -11,6 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { SidebarInset, SidebarTrigger } from '../ui/sidebar';
 import AudioCallDialog from './AudioCallDialog';
 import { useWebRTCCall } from '@/hooks/useWebRTCCall';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 interface ChatHeaderProps {
   group: Group;
     onOpenChange: (open: boolean) => void;
@@ -95,6 +97,30 @@ const normalizeMembersForCall = (members: User[]) =>
   const handleopen =()=>{
     setIsVideoCallOpen(false)
   }
+
+
+
+ const handleShareLocation = async (latitude: any, longitude: any) => {
+  const newMessage = {
+    type: 'location',
+    latitude,
+    longitude,
+    timestamp: new Date(),
+    userId: userData.id,
+    userName: userData.name,
+  };
+
+  try {
+    await addDoc(
+      collection(db, "families", userData.familyId, "messages"),
+      newMessage
+    );
+    console.log("Location shared successfully");
+  } catch (error) {
+    console.error("Error sharing location:", error);
+  }
+};
+
 
   const handleDecline = async (id: string | null) => {
     const idToUse = id ?? hookCallId;
@@ -199,7 +225,11 @@ audiocaller={audiocall}
         isOnline: userData?.isActive
       }}
       />
-      <LocationDialog isOpen={isLocationOpen} onOpenChange={setIsLocationOpen} members={approvedMembers} />
-    </>
+ <LocationDialog
+      isOpen={isLocationOpen}
+      onOpenChange={setIsLocationOpen}
+      members={members}
+      onShareLocation={handleShareLocation}
+    />    </>
   );
 }

@@ -20,8 +20,14 @@ import UserDP from "./UserDP";
 import PendingList from "@/components/setup/PendingList";
 import ChatSidebar from "@/components/chat/chat-sidebar";
 import IsChat from "@/components/chat/IsChat";
+import 'leaflet/dist/leaflet.css';
+import '@changey/react-leaflet-markercluster/dist/styles.min.css'; // For clustering
+// import 'leaflet-compass/dist/leaflet-compass.css';
+import 'leaflet-minimap/dist/Control.MiniMap.min.css';
+
 // import { useRouter } from "next/navigation";
 import SidebarLink from "@/components/SidebarLink";
+import Head from "next/head";
 export default function DashboardLayout({
   children,
 }: {
@@ -42,8 +48,22 @@ export default function DashboardLayout({
 //       console.error("Logout failed:", error);
 //     }
 //   };
+// 
+
 
   return (
+     <>
+      <Head>
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet-compass/dist/leaflet-compass.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet-minimap/dist/Control.MiniMap.min.css"
+        />
+      </Head>
+ 
    <SidebarProvider>
   <Sidebar>
     <SidebarHeader>
@@ -168,6 +188,7 @@ export default function DashboardLayout({
     <main className="flex-1 overflow-y-auto">{children}</main>
   </SidebarInset>
 </SidebarProvider>
+   </>
   );
 }
 
