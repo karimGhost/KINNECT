@@ -61,9 +61,28 @@ if(!user)
       {/* Header */}
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-headline font-bold text-primary">
-          ♡  Kinnect
-          </h1>
+          <div className="flex items-center gap-2 md:gap-3">
+        <div className="p-2 rounded-lg bg-primary/20 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-5 h-5 md:w-6 md:h-6">
+            <defs>
+              <linearGradient id="heartGradient" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0%" stopColor="#00f2fe" />
+                <stop offset="100%" stopColor="#a800ff" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M12 21s-6.2-4.6-9-8.5C1 9 3 4 7 4c2.3 0 3.6 1.3 5 3 
+                 1.4-1.7 2.7-3 5-3 4 0 6 5 4 8.5-2.8 3.9-9 8.5-9 8.5z"
+              fill="url(#heartGradient)"
+              stroke="white"
+              strokeWidth="1.5"
+            />
+          </svg>
+        </div>
+        <h1 className="text-lg md:text-xl font-headline font-bold text-primary truncate group-data-[collapsible=icon]:hidden">
+          Kinnect
+        </h1>
+      </div>
           <nav>
             {!user ? (
               <>

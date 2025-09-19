@@ -6,7 +6,7 @@ import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, fetchS
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, User, Phone, Github, Chrome } from "lucide-react";
+import { Mail, Lock, User, Phone, Github, Chrome, ArrowBigLeftDash } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 export default function LoginPage() {
@@ -100,6 +100,8 @@ toast({
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="bg-card p-6 rounded-2xl shadow-lg w-full max-w-md space-y-6">
         <div className="text-center">
+
+          <ArrowBigLeftDash style={{cursor:"pointer"}} onClick={() => router.push("/")}></ArrowBigLeftDash>
                     <h1 className="text-2xl font-bold text-primary">♡ Kinnect</h1>
 
                    <p className="text-muted-foreground text-sm">Welcome back! Log in to continue</p>
