@@ -168,7 +168,7 @@ console.log("fami", snap.docs )
               <div>
                 <p className="font-semibold">{fam.familyName}</p>
                 <p className="text-xs text-muted-foreground">
-                  Origin: {fam.familyCountry}
+                  Origin: {fam.country}
                 </p>
               </div>
            <Button
