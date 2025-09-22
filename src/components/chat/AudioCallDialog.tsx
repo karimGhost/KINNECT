@@ -68,12 +68,34 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
         const messagesCol = collection(db, "families", groupId, "messages");
         // customize the message shape to match your app's messages schema
         await addDoc(messagesCol, {
-          type: "Call_Ended",
-          ended: false,
-          from: { id: currentuserIs?.id, name: currentuserIs?.name },
+  
+  
+        author: {
+          id: user?.uid,
+          name: userData?.fullName,
+          avatar: userData.avatarUrl,
+          isOnline: true
+        },
+  
+        createdAt: serverTimestamp(),
+            reactions: {},
+  
+        replyTo:  "",
+              replyAuthorName: "",
+                    replyPreview: "", // short snippet
+  
+  
+        fileUrl: "",
+       
+  
+        type: "Call_Ended",
+        callId,
+        ended: true,
+        from: { id: currentuserIs?.id, name: currentuserIs?.name },
           text: `${currentuserIs?.name} ended a voice call`,
-          // optional: any extra metadata your chat uses:
-          metadata: { callId },
+        // optional: any extra metadata your chat uses:
+        metadata: { callId },
+  
         });
     
     
@@ -109,7 +131,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
   
         type: "V_call_invite",
         callId,
-        ended: true,
+        ended: false,
         from: { id: currentuserIs?.id, name: currentuserIs?.name },
         text: `${currentuserIs?.name} started a Voice call`,
         // optional: any extra metadata your chat uses:
@@ -123,7 +145,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
   };
   
 
-  const hangdlehungup = () => {
+  const handlehungup = () => {
 
     if(audiocaller?.author?.id  === user?.uid){
         EndCallMessage();
@@ -244,7 +266,7 @@ if (
             <Button
               variant="destructive"
               onClick={() => {
-                hangUp()
+                handlehungup()
                 onOpenChange(false)
               }}
             >

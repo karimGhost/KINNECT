@@ -13,6 +13,9 @@ import AudioCallDialog from './AudioCallDialog';
 import { useWebRTCCall } from '@/hooks/useWebRTCCall';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Dialog, DialogContent, DialogTitle } from '@radix-ui/react-dialog';
+import { DialogHeader } from '../ui/dialog';
+import { useRouter } from 'next/navigation';
 interface ChatHeaderProps {
   group: Group;
     onOpenChange: (open: boolean) => void;
@@ -27,7 +30,7 @@ export default function ChatHeader({ group , onOpenChange, callId , videoCall, a
   const [isLocationOpen, setIsLocationOpen] = useState(false);
     const [isAudioCallOpen, setIsAudioCallOpen] = useState(false)
 const {userData, user} = useAuth();
-
+const router = useRouter();
 const currentuserIs = {
   id: user?.uid ?? "",  // fallback to empty string
   name: userData?.fullName,
@@ -52,6 +55,8 @@ const currentuserIs = {
     callId: hookCallId,
   } = useWebRTCCall({ currentuserIs });
   const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
+  const [open, setOpen] = useState(false);
+
 
 const normalizeMembersForCall = (members: User[]) =>
   members.map((m) => ({
@@ -145,6 +150,42 @@ const normalizeMembersForCall = (members: User[]) =>
   useEffect(()=>{
 console.log("videoCall", videoCall)
   },[videoCall])
+
+  // if(open){
+  //   return(
+  //       <Dialog open={open} onOpenChange={setOpen}>
+  //       <DialogContent className="max-w-md rounded-2xl">
+  //         <DialogHeader>
+  //           <DialogTitle>Family Members</DialogTitle>
+  //         </DialogHeader>
+
+  //         <div className="space-y-4">
+  //           {members.map((member) => (
+  //             <div
+  //               key={member.id ?? member.uid}
+  //               className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-accent cursor-pointer"
+  //             >
+  //               {/* Avatar */}
+  //               <img
+  //                 src={member.photoURL ?? "/default-avatar.png"}
+  //                 alt={member.name ?? "User"}
+  //                 className="h-10 w-10 rounded-full object-cover"
+  //               />
+
+  //               {/* Details */}
+  //               <div className="flex flex-col">
+  //                 <span className="font-medium">{member.name ?? "Unknown"}</span>
+  //                 <span className="text-sm text-muted-foreground">
+  //                   {member.email ?? "No details"}
+  //                 </span>
+  //               </div>
+  //             </div>
+  //           ))}
+  //         </div>
+  //       </DialogContent>
+  //     </Dialog>
+  //   )
+  // }
   return (
     <>
 
@@ -173,9 +214,54 @@ console.log("videoCall", videoCall)
             <MapPin className="h-5 w-5" />
           </Button>
 
-          <Button variant="ghost" size="icon" aria-label="More options">
-            <MoreVertical className="h-5 w-5" />
-          </Button>
+           <>
+      {/* More options button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="More options"
+        onClick={() => setOpen(true)}
+      >
+        <MoreVertical className="h-5 w-5" />
+      </Button>
+
+      {/* Bottom sheet */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          className="fixed bottom-0 left-0 right-0 m-0 h-[70vh] mx-auto max-w-2xl top-0 rounded-t-2xl border-t bg-background p-4 shadow-lg"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">Family Members</DialogTitle>
+          </DialogHeader>
+
+          {/* Scrollable list */}
+          <div className="mt-4 max-h-[60vh] mx-auto max-w-2xl   overflow-y-auto space-y-3">
+            {members.map((member) => (
+              <div
+              onClick={() => router.push(`/dashboard/profile/${member.id}`) }
+                key={member.id ?? member.uid}
+                className="flex items-center space-x-3 rounded-xl border p-3 hover:bg-accent cursor-pointer"
+              >
+                {/* Avatar */}
+                <img
+                  src={member.photoURL ?? "/default-avatar.png"}
+                  alt={member.fullName ?? "User"}
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+
+                {/* Info */}
+                <div className="flex flex-col">
+                  <span className="font-medium">{member.fullName ?? "Unknown"}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {member.email ?? "No details"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
         </div>
       </div>
  

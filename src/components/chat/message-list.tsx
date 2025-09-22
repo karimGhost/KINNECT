@@ -389,8 +389,15 @@ return(
           <div
             className={cn(
               "rounded-xl p-3 text-sm relative",
-              isCurrentUser ? "bg-primary text-white" : "bg-card border"
-            )}
+ 
+      
+    
+       message?.ended  && message?.type !== "Call_Ended"
+      ? " bg-green-500" : message?.type === "Call_Ended" ? "bg-red-500" :  isCurrentUser 
+      ? "bg-primary text-white"
+      : "bg-card border"   ,
+    
+    )}
           >
 
             {/* Reply preview */}
@@ -432,7 +439,7 @@ return(
             {message.text && 
 
 <>
-<p className="text-sm break-words whitespace-pre-wrap break-all">
+<p className="text-sm break-words   whitespace-pre-wrap break-all">
       {linkify(message.text)}
 </p>
     {url ?  <LinkPreview url={url} /> : <></>}
