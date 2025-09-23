@@ -1,19 +1,45 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { headers } from "next/headers";
+
+
+
+function getUserLang() {
+  if (typeof navigator !== "undefined") {
+    return (navigator.language || "en").split("-")[0]; // e.g. "en", "sw"
+  }
+  return "en"; // fallback for server
+}
 
 export const metadata: Metadata = {
   title: "Kinnect",
   description: "Rediscover Your Roots, Reconnect Your Family.",
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+ const lang =
+    typeof window !== "undefined" ? getUserLang() : "en";
+
+
+    //  const lang =
+    // typeof window === "undefined"
+    //   ? // On server: read the header injected by middleware
+    //     // @ts-ignore - Next provides this header in request
+    //     (headers().get("x-user-lang") ?? "en")
+    //   : "en"; // client fallback
+
+
   return (
-    <html lang="en" className="dark">
+   
+          <html lang={lang} className="dark">
+
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

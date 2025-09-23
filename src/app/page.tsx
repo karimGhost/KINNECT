@@ -61,8 +61,9 @@ if(!user)
       {/* Header */}
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2 md:gap-3">
-        <div className="p-2 rounded-lg bg-primary/20 flex items-center justify-center">
+          <div className="flex items-center gap-1 md:gap-1">
+        
+        <div className="p-1 rounded-lg bg-primary/20 flex items-center justify-center">
           <svg viewBox="0 0 24 24" className="w-5 h-5 md:w-6 md:h-6">
             <defs>
               <linearGradient id="heartGradient" x1="0" y1="1" x2="1" y2="0">

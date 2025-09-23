@@ -15,6 +15,7 @@ import { useAutoLocationShare } from '@/hooks/useAutoLocationShare';
 import 'leaflet/dist/leaflet.css';
 
 import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
 export default function DashboardPage() {
   // const [user, authLoading] = useAuthState(auth); // 🔹 auth loading state
   const [dataLoading, setDataLoading] = useState(true)
@@ -52,9 +53,27 @@ if(!user){
   // }, [user]);
 
   // 🔹 Guard until BOTH auth and firestore profile are ready
-  if (loading || !userData) {
-    return <Spinner />;
+   if(!loading && !userData){
+    return <ExtraSignupPage />;
   }
+
+  if( !loading &&  !user?.email){
+  
+    signOut(auth)
+
+  }
+
+  if(!loading && !userData.familyId){
+     return <FamilySearch onFamilyCreated={refreshUserData} />;
+ 
+  }
+  if (loading || !userData) {
+            console.log("fam", loading)
+
+    return <Spinner />;
+
+  }
+
 
   if (user && !userData) {
     return <ExtraSignupPage />;
@@ -64,6 +83,7 @@ if(!user){
     return <FamilySearch onFamilyCreated={refreshUserData} />;
   }
 
+
   if (userData.familyId && !userData.approved) {
     return <FamilyPendingPage familyId={userData.familyId} />;
   }
@@ -71,6 +91,7 @@ if(!user){
   return  <FamilyFeedPage />
   
   
-
+ 
 }
+
   // <FamilyFeedPage />;

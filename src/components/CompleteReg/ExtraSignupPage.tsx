@@ -63,9 +63,9 @@ export default function ExtraSignupPage() {
         <Input  placeholder="FullName/Original Name/Birth Name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
         {/* <Input placeholder="Family Name" value={familyName} onChange={(e) => setFamilyName(e.target.value)} required /> */}
         <Input placeholder="Age" type="number" value={age} onChange={(e) => setAge(e.target.value)} />
-        <Input placeholder="Living Country" value={country} onChange={(e) => setCountry(e.target.value)} />
-                <Input placeholder="Living City" value={city} onChange={(e) => setCity(e.target.value)} />
-        <Input placeholder="Ethnicity" value={ethnicity} onChange={(e) => setEthnicity(e.target.value)} />
+        <Input placeholder="Living Country" value={country} onChange={(e) => setCountry(e.target.value)} required />
+                <Input placeholder="Living City" value={city} onChange={(e) => setCity(e.target.value)} required />
+        <Input placeholder="Ethnicity" value={ethnicity} onChange={(e) => setEthnicity(e.target.value)} required />
         <Button type="submit" className="w-full">Save & Continue</Button>
       </form>
     </div>

@@ -2,67 +2,111 @@
 
 import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { Phone, ArrowLeft } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PhoneLoginPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [confirmResult, setConfirmResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
+
+  const getFriendlyError = (code: string) => {
+    switch (code) {
+      case "auth/invalid-phone-number":
+        return "Invalid phone number format.";
+      case "auth/missing-phone-number":
+        return "Please enter a phone number.";
+      case "auth/too-many-requests":
+        return "Too many login attempts. Try again later.";
+      default:
+        return "Something went wrong. Please try again.";
+    }
+  };
 
   // Step 1: send OTP
   const handleSendOtp = async () => {
     try {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: "invisible",
-        });
+      setLoading(true);
+
+
+      if (!(window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          { size: "invisible" }
+        );
       }
-      const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        phone,
+(window as any).recaptchaVerifier
+      );
       setConfirmResult(confirmation);
-      alert("OTP sent!");
+
+      toast({
+        title: "OTP Sent",
+        description: "Check your phone for the code.",
+      });
     } catch (err: any) {
-      alert(err.message);
+      toast({
+        title: "Failed to send OTP",
+        description: getFriendlyError(err.code),
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   // Step 2: verify OTP
-const handleVerifyOtp = async () => {
-  try {
-    const result = await confirmResult.confirm(otp);
+  const handleVerifyOtp = async () => {
+    if (!confirmResult) return;
+    try {
+      setLoading(true);
+      const result = await confirmResult.confirm(otp);
 
-    const userDoc = await getDoc(doc(db, "users", result.user.uid));
-    if (!userDoc.exists()) {
-      router.push("/signup/extra");
-    } else {
-      router.push("/dashboard");
+      const userDoc = await getDoc(doc(db, "users", result.user.uid));
+      if (!userDoc.exists()) {
+        // user hasn’t signed up yet
+        router.push("/signup/extra");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Invalid OTP",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    alert("Invalid OTP");
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="bg-card p-6 rounded-xl shadow-md w-full max-w-md space-y-6">
-
         {/* Back button */}
         <button
           onClick={() => router.push("/login")}
           className="flex items-center text-sm text-muted-foreground hover:text-primary"
         >
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back to Login
+          <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </button>
 
         <div className="text-center">
           <h1 className="text-2xl font-bold text-primary">♡ Kinnect</h1>
           <p className="text-muted-foreground text-sm">
-            Welcome back! Log in with phone to continue
+            Welcome back! Log in with your phone
           </p>
         </div>
 
@@ -78,9 +122,10 @@ const handleVerifyOtp = async () => {
           {!confirmResult ? (
             <Button
               onClick={handleSendOtp}
+              disabled={loading}
               className="w-full flex items-center justify-center gap-2"
             >
-              <Phone size={18} /> Send OTP
+              <Phone size={18} /> {loading ? "Sending..." : "Send OTP"}
             </Button>
           ) : (
             <div className="space-y-2">
@@ -89,8 +134,12 @@ const handleVerifyOtp = async () => {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
               />
-              <Button onClick={handleVerifyOtp} className="w-full">
-                Verify OTP
+              <Button
+                onClick={handleVerifyOtp}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? "Verifying..." : "Verify OTP"}
               </Button>
             </div>
           )}

@@ -392,8 +392,9 @@ return(
  
       
     
-       message?.ended  && message?.type !== "Call_Ended"
-      ? " bg-green-500" : message?.type === "Call_Ended" ? "bg-red-500" :  isCurrentUser 
+       message.call === "calling"
+
+      ? " bg-green-500" : message?.call === "ended" ? "bg-red-500" :  isCurrentUser 
       ? "bg-primary text-white"
       : "bg-card border"   ,
     

@@ -35,6 +35,19 @@ export default function DashboardLayout({
 }) {
 
 
+  function getUserLang() {
+  if (typeof navigator !== "undefined") {
+    return (navigator.language || "en").split("-")[0]; // e.g. "en", "sw"
+  }
+  return "en"; // fallback for server
+}
+
+
+ const lang =
+    typeof window !== "undefined" ? getUserLang() : "en";
+
+
+
   // We'll mock the current user as the admin of the first family.
 // const router = useRouter()
 
@@ -53,6 +66,7 @@ export default function DashboardLayout({
 
   return (
      <>
+
       <Head>
         <link
           rel="stylesheet"
@@ -67,8 +81,8 @@ export default function DashboardLayout({
    <SidebarProvider>
   <Sidebar>
     <SidebarHeader>
-      <div className="flex items-center gap-2 md:gap-3">
-        <div className="p-2 rounded-lg bg-primary/20 flex items-center justify-center">
+      <div className="flex items-center gap-1 md:gap-1">
+        <div className="p-1 rounded-lg bg-primary/20 flex items-center justify-center">
           <svg viewBox="0 0 24 24" className="w-5 h-5 md:w-6 md:h-6">
             <defs>
               <linearGradient id="heartGradient" x1="0" y1="1" x2="1" y2="0">
@@ -161,9 +175,9 @@ export default function DashboardLayout({
 
   <SidebarInset>
     {/* Topbar for mobile */}
-    <div className="md:hidden p-3 border-b flex items-center gap-2">
+    <div className="md:hidden p-3 border-b flex items-center gap-1">
       <SidebarTrigger />
-      <div className="p-2 rounded-lg bg-primary/20 flex items-center justify-center">
+      <div className="p-1 rounded-lg bg-primary/20 flex items-center justify-center">
         <svg viewBox="0 0 24 24" className="w-5 h-5">
           <defs>
             <linearGradient id="heartGradient" x1="0" y1="1" x2="1" y2="0">

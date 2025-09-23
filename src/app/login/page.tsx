@@ -60,7 +60,7 @@ const {toast} = useToast();
 
     const email = result.user.email;
     if (!email) throw new Error("No email from Google");
-
+if(!email) return;
     // 1. Check if Firebase has this email registered
 //     const methods = await fetchSignInMethodsForEmail(auth, email);
 //     if (methods.length === 0) {
@@ -101,9 +101,29 @@ toast({
       <div className="bg-card p-6 rounded-2xl shadow-lg w-full max-w-md space-y-6">
         <div className="text-center">
 
-          <ArrowBigLeftDash style={{cursor:"pointer"}} onClick={() => router.push("/")}></ArrowBigLeftDash>
-                    <h1 className="text-2xl font-bold text-primary">♡ Kinnect</h1>
+          <ArrowBigLeftDash style={{cursor:"pointer", marginBottom:"5px"}} className="hover:text-primary" onClick={() => router.push("/")}></ArrowBigLeftDash>
+          
+                    <div className="flex items-center gap-1 md:gap-1">
 
+            <div className="p-1 rounded-lg bg-primary/20 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-5 h-5 md:w-6 md:h-6">
+            <defs>
+              <linearGradient id="heartGradient" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0%" stopColor="#00f2fe" />
+                <stop offset="100%" stopColor="#a800ff" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M12 21s-6.2-4.6-9-8.5C1 9 3 4 7 4c2.3 0 3.6 1.3 5 3 
+                 1.4-1.7 2.7-3 5-3 4 0 6 5 4 8.5-2.8 3.9-9 8.5-9 8.5z"
+              fill="url(#heartGradient)"
+              stroke="white"
+              strokeWidth="1.5"
+            />
+          </svg>
+        </div>
+                    <h1 className="text-2xl font-bold text-primary">Kinnect</h1>
+</div>
                    <p className="text-muted-foreground text-sm">Welcome back! Log in to continue</p>
 
         </div>
@@ -147,14 +167,14 @@ toast({
             
           </Button>
 
-          <Button
+          {/* <Button
             onClick={handlePhoneLogin}
             variant="outline"
             className="w-full flex items-center justify-center gap-2"
           >
             <Phone className="w-4 h-4 mr-2" /> Phone
             
-          </Button>
+          </Button> */}
 
           
         </div>

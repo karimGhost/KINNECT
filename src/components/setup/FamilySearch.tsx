@@ -134,15 +134,23 @@ if(!user) return;
 
       imageUrls = await Promise.all(uploads);
     }
-
-    // 2. Save request to Firestore
     const fam = familyId;
+    const val = {
+     uid: user?.uid,
+        country: country.toLowerCase(),
+        continent: continent.toLowerCase(),
+        familyId: fam,
+        approved: false,
+    }
+    console.log("val", val)
+    // 2. Save request to Firestore
+
     const reqRef = collection(db, "families", fam, "requests");
     await addDoc(reqRef, {
       userId: user?.uid,
       status: "pending",
       requestMessage,
-      images: imageUrls, // ✅ store uploaded Cloudinary URLs here
+      images: imageUrls || "", // ✅ store uploaded Cloudinary URLs here
       requestedAt: new Date(),
     });
 
@@ -220,7 +228,7 @@ if(!user) return;
 
     } else {
       // Request to join
-
+console.log("val", familyId)
 
  handleJoin(familyId)
 
@@ -562,10 +570,12 @@ color:"white",
             <div className="space-y-3">
       {families.map((fam: any) => (
         <div
-          key={fam.familyId}
+                  key={fam.familyId}
+
           className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3"         
+>
             {/* DP / Logo placeholder */}
             <img
               src={fam.avatarUrl || "/family-placeholder.png"}
@@ -579,6 +589,7 @@ color:"white",
                 {fam.country}, {fam.continent}
               </p>
             </div>
+
           </div>
 
          <Dialog>

@@ -99,6 +99,32 @@ const getFriendlySignupError = (code: string) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="bg-card p-6 rounded-xl shadow-md space-y-6 w-full max-w-md">
+
+
+
+      <div className="flex items-center gap-1 md:gap-1">
+
+            <div className="p-1 rounded-lg bg-primary/20 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-5 h-5 md:w-6 md:h-6">
+            <defs>
+              <linearGradient id="heartGradient" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0%" stopColor="#00f2fe" />
+                <stop offset="100%" stopColor="#a800ff" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M12 21s-6.2-4.6-9-8.5C1 9 3 4 7 4c2.3 0 3.6 1.3 5 3 
+                 1.4-1.7 2.7-3 5-3 4 0 6 5 4 8.5-2.8 3.9-9 8.5-9 8.5z"
+              fill="url(#heartGradient)"
+              stroke="white"
+              strokeWidth="1.5"
+            />
+          </svg>
+        </div>
+                    <h1 className="text-2xl font-bold text-primary">Kinnect</h1>
+</div>
+             
+
         <h1 className="text-xl font-bold text-center">Create Your Account</h1>
 
         {step === "choose" && (
@@ -119,12 +145,12 @@ const getFriendlySignupError = (code: string) => {
               
             </Button>
 
-            <Button
+            {/* <Button
               className="w-full flex items-center justify-center gap-2"
               onClick={() => router.push("/signup/phone")}
             >
               <Phone size={18} /> Sign up with Phone
-            </Button>
+            </Button> */}
 
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}

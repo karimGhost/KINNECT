@@ -87,7 +87,8 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
   
         fileUrl: "",
        
-  
+    call:"ended",
+
         type: "Call_Ended",
         callId,
         ended: true,
@@ -120,7 +121,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
   
         createdAt: serverTimestamp(),
             reactions: {},
-  
+  call:"calling",
         replyTo:  "",
               replyAuthorName: "",
                     replyPreview: "", // short snippet

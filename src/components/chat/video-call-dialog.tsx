@@ -72,6 +72,7 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
     await addDoc(messagesCol, {
       type: "Call_Ended",
       ended: false,
+      call:"ended",
       from: { id: currentuserIs?.id, name: currentuserIs?.name },
       text: `${currentuserIs?.name} ended a video call`,
       // optional: any extra metadata your chat uses:
@@ -151,6 +152,8 @@ setisopen(false);
     snap.forEach(async (docSnap) => {
       await updateDoc(docSnap.ref, {
         ended: false,
+              call:"ended",
+
               text: `${currentuserIs?.name}   video call ended `,
 
       });
@@ -231,6 +234,7 @@ const postCallMessage = async (callId: any) => {
         avatar: userData.avatarUrl,
         isOnline: true
       },
+  call:"calling",
 
       createdAt: serverTimestamp(),
           reactions: {},

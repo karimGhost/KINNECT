@@ -1,82 +1,107 @@
 "use client";
-
 import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber, signOut } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { Phone, ArrowLeft } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
-export default function PhoneLoginPage() {
+export default function PhoneSignupPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [confirmResult, setConfirmResult] = useState<any>(null);
   const router = useRouter();
-const {toast} = useToast();
+  const { toast } = useToast();
 
+  // Map Firebase auth error codes to friendly messages
   const getFriendlySignupError = (code: string) => {
-  switch (code) {
-    case "auth/email-already-in-use":
-      return "This email is already registered. Try logging in instead.";
-    case "auth/invalid-email":
-      return "Please enter a valid email address.";
-    case "auth/operation-not-allowed":
-      return "Email/password sign-up is not enabled. Please contact support.";
-    case "auth/weak-password":
-      return "Your password is too weak. Try a stronger one.";
-    default:
-      return "Something went wrong during sign up. Please try again.";
+    switch (code) {
+      case "auth/invalid-phone-number":
+        return "Invalid phone number format.";
+      case "auth/missing-phone-number":
+        return "Please enter a phone number.";
+      case "auth/too-many-requests":
+        return "Too many requests. Try again later.";
+      case "auth/quota-exceeded":
+        return "SMS quota exceeded. Try again later.";
+      default:
+        return "Something went wrong. Try again.";
+    }
+  };
+
+  // Step 1: send OTP
+ 
+const handleSendOtp = async () => {
+  try {
+    let appVerifier;
+
+    if (process.env.NODE_ENV !== "development") {
+      if (!(window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          { size: "invisible" }
+        );
+      }
+      appVerifier = (window as any).recaptchaVerifier;
+    }
+
+    const confirmationResult = await signInWithPhoneNumber(
+      auth,
+      phone,
+      appVerifier
+    );
+
+    setConfirmResult(confirmationResult);
+
+    toast({
+      title: "OTP Sent",
+      description: "Please check your phone for the code.",
+    });
+  } catch (error: any) {
+    toast({
+      title: "Error sending OTP",
+      description: getFriendlySignupError(error.code),
+      variant: "destructive",
+    });
   }
 };
-  // Step 1: send OTP
-  // const handleSendOtp = async () => {
-  //   try {
-  //     if (!window.recaptchaVerifier) {
-  //       window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-  //         size: "invisible",
-  //       });
-  //     }
-  //     const confirmation = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
-  //     setConfirmResult(confirmation);
-     
-  //      toast({
-  //     title: "OTP",
-  //     description: "OTP sent!",
-  //     variant:"default"
-  //   });  
-  
-  //   } catch (err: any) {
-  //   toast({
-  //     title: " failed",
-  //     description: getFriendlySignupError(err.code),
-  //     variant: "destructive",
-  //   });    }
-  //   }
-  // };
+
 
   // Step 2: verify OTP
-// const handleVerifyOtp = async () => {
-//   try {
-//     const result = await confirmResult.confirm(otp);
+  const handleVerifyOtp = async () => {
+    try {
+      const result = await confirmResult.confirm(otp);
 
-//     const userDoc = await getDoc(doc(db, "users", result.user.uid));
-//     if (!userDoc.exists()) {
-//       router.push("/signup/extra");
-//     } else {
-//       router.push("/dashboard");
-//     }
-//   } catch (err: any) {
-//     alert("Invalid OTP");
-//   }
-// };
+      const userRef = doc(db, "users", result.user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        // create new user document for signup
+        await setDoc(userRef, {
+          uid: result.user.uid,
+          phone: result.user.phoneNumber,
+          createdAt: new Date(),
+        });
+        router.push("/signup/extra"); // collect extra info
+      } else {
+        router.push("/dashboard"); // already exists
+      }
+    } catch (err: any) {
+      toast({
+        title: "Invalid OTP",
+        description: "Please check and try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="bg-card p-6 rounded-xl shadow-md w-full max-w-md space-y-6">
-
         {/* Back button */}
         <button
           onClick={() => router.push("/login")}
@@ -88,7 +113,7 @@ const {toast} = useToast();
         <div className="text-center">
           <h1 className="text-2xl font-bold text-primary">♡ Kinnect</h1>
           <p className="text-muted-foreground text-sm">
-            signup  with phone 
+            Sign up with your phone number
           </p>
         </div>
 
@@ -103,7 +128,7 @@ const {toast} = useToast();
 
           {!confirmResult ? (
             <Button
-              // onClick={handleSendOtp}
+              onClick={handleSendOtp}
               className="w-full flex items-center justify-center gap-2"
             >
               <Phone size={18} /> Send OTP
@@ -115,8 +140,7 @@ const {toast} = useToast();
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
               />
-              {/* onClick={handleVerifyOtp} */}
-              <Button  className="w-full">
+              <Button onClick={handleVerifyOtp} className="w-full">
                 Verify OTP
               </Button>
             </div>
