@@ -197,7 +197,7 @@ console.log("videoCall", videoCall)
             <AvatarFallback className="bg-secondary text-lg">{familyName.slice(0, 1).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="font-headline text-lg font-semibold">{familyName } Family</h2>
+            <h2 style={{whiteSpace:"nowrap"}} className="font-headline text-lg font-semibold">{familyName } Family</h2>
             <p className="text-sm text-muted-foreground">{approvedMembers.length} members</p>
           </div>
         </div>
