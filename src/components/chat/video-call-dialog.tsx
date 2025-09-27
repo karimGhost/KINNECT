@@ -14,6 +14,8 @@ import { addDoc, collection, getDocs, query, serverTimestamp, updateDoc, where }
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { User } from "@/types";
+import { useIncomingCalls } from "@/hooks/useIncomingCalls";
+import { useCallParticipants } from "@/hooks/useCallParticipants";
 interface Member {
   uid(uid?: any): unknown; id?: string; name?: string; avatar?: string; fullName?: string 
 }
@@ -43,7 +45,7 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
     hangUp,
     toggleMute,
     toggleVideo,
- 
+ isCalling,
     muted,
     videoOn,
     status,
@@ -54,12 +56,24 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
 
   const {user, userData} = useAuth();
   const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
+const [incomingCall, setIncomingCall] = useState<any>();
+const [ringoff,setringoff] = useState(false);
 
   useEffect(() => {
     // sync with hook callId if not set
     if (!internalCallId && hookCallId) setInternalCallId(hookCallId);
   }, [hookCallId, internalCallId]);
 
+useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller: any; members: any }) => {
+  setIncomingCall({
+    id: callId,
+    from: callData.caller.id,
+    members: callData.members,
+    status: callData.status,
+  });
+});
+
+const participants = useCallParticipants(callId);
 
 
   const EndCallMessage = async () => {
@@ -108,6 +122,7 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
   const [isopen, setisopen] = useState(true)
 
   const handleAccept = async () => {
+    setringoff(true)
     const idToUse = callerId  ;
     if (!idToUse) {
       console.error("No call id to accept");
@@ -129,6 +144,7 @@ setisopen(false);
   };
 
   const handleDecline = async () => {
+    setringoff(true)
     const idToUse = callerId  ;
     if (!idToUse) return;
     await declineCall(idToUse);
@@ -166,8 +182,8 @@ setisopen(false);
 
 
 
-
   const handleEnd = async () => {
+    setringoff(true)
        if(videocalling?.author?.id  !== user?.uid) {
          await hangUp();
     onOpenChange(false);
@@ -192,6 +208,46 @@ EndCallMessage()
 
   };
 
+
+const [ringtone, setRingtone] = useState<HTMLAudioElement | null>(null);
+  const isCaller = callerId !== currentuserIs?.id
+
+
+// useEffect(() => {
+//   if (status === "ringing" &&  isCaller) {
+//     const audio = new Audio("/sounds/phone-call.mp3");
+//     audio.loop = true;
+//     audio.play().catch(() => {});
+//     setRingtone(audio);
+//   } else if (status === "active" || status === "ended") {
+//     ringtone?.pause();
+//     ringtone && (ringtone.currentTime = 0);
+//   }
+// }, [status]);
+
+
+  // Start a call
+useEffect(() => {
+  let ring: HTMLAudioElement | null = null;
+setringoff(false);
+  if (status === "ringing" && !isCaller) {
+    ring = new Audio("/sounds/incoming-call.mp3");
+    ring.loop = true;
+    ring.play().catch(() => {});
+  }
+
+  if( ringoff && ring){
+          ring.pause();
+
+  }
+  // ✅ cleanup when status changes or component unmounts
+  return () => {
+    if (ring) {
+      ring.pause();
+      ring.currentTime = 0;
+    }
+  };
+}, [status, ringoff]);
 
   useEffect(() => {
 
@@ -317,11 +373,15 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
     onOpenChange(open); // still update state so dialog closes
   }}
 >
-      <DialogContent className="max-w-6xl h-[80vh] flex flex-col p-0">
+      <DialogContent className="max-w-6xl h-[80vh] flex flex-col p-0 [&_button.absolute.right-4.top-4]:hidden"
+       onInteractOutside={(e) => isCalling && e.preventDefault()}
+    onEscapeKeyDown={(e) => e.preventDefault()}
+  >
+      
         <DialogHeader className="p-4 border-b flex items-center justify-between">
           <div>
             <DialogTitle>Team Sync - Video Call</DialogTitle>
-            <DialogDescription>{members.length} participants</DialogDescription>
+            <DialogDescription>Members: {members.length},  Participants ({Object.keys(participants).length})</DialogDescription>
             
           </div>
 
@@ -338,7 +398,7 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
             )}
 
              {
-              videocalling?.ended         &&      <Button onClick={handleAccept} variant="secondary">on going Call</Button>
+              videocalling?.ended         &&      <Button onClick={handleAccept} style={{background:"green"}} variant="secondary">on going Call</Button>
 
             }
           </div>

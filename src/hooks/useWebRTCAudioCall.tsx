@@ -321,7 +321,7 @@ const pc = new RTCPeerConnection({
         type: "audio",
         caller: { id: normalize(currentuserIs?.id), name: currentuserIs?.name },
         participants: {
-          [normalize(currentuserIs?.id)]: { muted: false },
+          [normalize(currentuserIs?.id)]: { muted: false, user:currentuserIs?.name },
         },
  members: members.map((m) => normalize(m.id ?? m.uid)),
         offers,
@@ -400,7 +400,7 @@ const pc = new RTCPeerConnection({
 
       await updateDoc(callRef, {
         status: "active",
-        [`participants.${normalize(currentuserIs?.id)}`]: { muted: false },
+        [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, name: currentuserIs?.name },
         [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(),
       }).catch(async (err) => {
         // if doc missing, create it safely

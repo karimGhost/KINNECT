@@ -244,16 +244,16 @@ console.log("videoCall", videoCall)
               >
                 {/* Avatar */}
                 <img
-                  src={member.photoURL ?? "/default-avatar.png"}
-                  alt={member.fullName ?? "User"}
+                  src={member?.photoURL ?? "/default-avatar.png"}
+                  alt={member?.fullName ?? "User"}
                   className="h-12 w-12 rounded-full object-cover"
                 />
 
                 {/* Info */}
                 <div className="flex flex-col">
-                  <span className="font-medium">{member.fullName ?? "Unknown"}</span>
+                  <span className="font-medium">{member?.fullName ?? "Unknown"}</span>
                   <span className="text-sm text-muted-foreground">
-                    {member.email ?? "No details"}
+                    {member?.email ?? "No details"}
                   </span>
                 </div>
               </div>

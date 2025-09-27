@@ -8,7 +8,9 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useIncomingCalls } from "@/hooks/useIncomingCalls"
+import { useIncomingCalls } from "@/hooks/useIncomingCalls";
+import { useCallParticipants } from "@/hooks/useCallParticipants";
+
 interface AudioCallDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
@@ -40,6 +42,8 @@ export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members
 const [incomingCall, setIncomingCall] = useState<any>();
   const [isopen, setisopen] = useState(true)
 
+const participants = useCallParticipants(callId);
+const [ringoff,setringoff] = useState(false);
 
 // useEffect(() => {
 // console.log("incomingCall", incomingCall)
@@ -147,7 +151,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
   
 
   const handlehungup = () => {
-
+setringoff(true)
     if(audiocaller?.author?.id  === user?.uid){
         EndCallMessage();
 
@@ -159,6 +163,36 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
 setisopen(false);
 }
 
+const [onlyActive, setonlyActive] = useState(false)
+
+useEffect(() => {
+  // Check if there are NO participants
+  if (Object.keys(participants).length === 0) {
+    const timer = setTimeout(() => {
+      handlehungup();
+      setonlyActive(true)
+      
+    }, 60 * 1000); // 1 minute in ms
+
+    // Cleanup if participants change before timeout
+    return () => clearTimeout(timer);
+  }
+}, [participants]);
+
+if(onlyActive  ){
+
+  return(
+         <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
+              <p className="text-xl">{audiocaller?.author?.name} Opps ended the call, Looks Like you are the only one on call for long...</p>
+              <div className="flex gap-4">
+            <Button onClick={() => setonlyActive(false)}>exit</Button>
+              </div>
+            </div>
+      )
+}
+
+
+
   // useEffect(() => {
   
   //     if( audiocaller?.author?.id  === user?.uid && audiocaller?.ended  &&   incomingCall.status === "ringing"){
@@ -169,8 +203,51 @@ setisopen(false);
   
   
   // }, [audiocaller, incomingCall])
-  
-  // Start a call (caller)
+    const isCaller = callerId !== currentuserIs?.id
+
+  const [ringtone, setRingtone] = useState<HTMLAudioElement | null>(null);
+
+
+useEffect(() => {
+  if (status === "ringing" &&  isCaller) {
+    const audio = new Audio("/sounds/phone-call.mp3");
+    audio.loop = true;
+    audio.play().catch(() => {});
+    setRingtone(audio);
+
+
+    if(ringoff){
+          ringtone?.pause();
+
+    }
+  } else if (status === "active" || status === "ended") {
+    ringtone?.pause();
+    ringtone && (ringtone.currentTime = 0);
+  }
+}, [status, ringoff]);
+
+
+  // Start a call
+useEffect(() => {
+  let ring: HTMLAudioElement | null = null;
+
+  if (status === "ringing" && !isCaller) {
+    ring = new Audio("/sounds/incoming-call.mp3");
+    ring.loop = true;
+    ring.play().catch(() => {});
+  }
+
+  // ✅ cleanup when status changes or component unmounts
+  return () => {
+    if (ring) {
+      ring.pause();
+      ring.currentTime = 0;
+    }
+  };
+}, [status]);
+
+
+
   const handleStart = async () => {
     const id = await startCall(members)
 
@@ -183,6 +260,7 @@ setisopen(false);
 
   // Accept (callee)
   const handleAccept = async () => {
+    setringoff(true)
      if (!incomingCall) return;
   await acceptCall(incomingCall?.id, incomingCall?.members);
 
@@ -190,7 +268,6 @@ setisopen(false);
 setisopen(false);
   }
 
-  const isCaller = callerId !== currentuserIs?.id
 
 
 if (
@@ -204,7 +281,7 @@ if (
               <div className="flex gap-4">
  <Button onClick={handleAccept} className="bg-green-600 text-white">
               Accept
-            </Button>                <Button onClick={hangdlehungup}  variant="destructive">Decline</Button>
+            </Button>                <Button onClick={handlehungup}  variant="destructive">Decline</Button>
               </div>
             </div>
 
@@ -216,15 +293,38 @@ if (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) hangUp()
+        if (!open) handlehungup()
         onOpenChange(open)
       }}
     >
-      <DialogContent className="flex flex-col items-center space-y-6">
-        <DialogHeader className="text-center">
+      <DialogContent 
+      onInteractOutside={(e) => isCalling && e.preventDefault()}
+    onEscapeKeyDown={(e) => e.preventDefault()}
+  className="flex flex-col items-center space-y-6 [&_button.absolute.right-4.top-4]:hidden"
+  >
+  <DialogHeader className="text-center">
           <DialogTitle>Audio Call</DialogTitle>
           <DialogDescription>
-            {members.length} participants : Active:(1) · Status: {status || "idle"}
+             <div className="p-4">
+      <p className="font-semibold mb-2">
+    {members.length} members..    Participants ({Object.keys(participants).length})
+      </p>
+      <ul className="space-y-2">
+        {Object.entries(participants).map(([uid, info]) => (
+          <li
+            key={uid}
+            className="flex items-center justify-between p-2 border rounded-md"
+          >
+            <span className="font-medium">{info.user}</span>
+            <div className="text-sm text-gray-500">
+             <i style={{color: info.muted ? "red" : "green"}}> Mic: {info.muted ? "Off" : "On"} </i> 
+              {/* {info.videoOn ? "On" : "Off"} */}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+            {/* {members.length} participants : Active:(({Object.keys(participants).length})) · Status: {status || "idle"} */}
           </DialogDescription>
         </DialogHeader>
 

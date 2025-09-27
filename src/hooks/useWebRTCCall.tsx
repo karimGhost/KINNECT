@@ -180,7 +180,7 @@ setId(id)
       status: "ringing",
       caller: { id: currentuserIs?.id, name: currentuserIs?.name },
       participants: {
-        [normalize(currentuserIs?.id)]: { muted: false, videoOn: true },
+        [normalize(currentuserIs?.id)]: { muted: false, videoOn: true,name: currentuserIs?.name},
       },
         members: members.map((m) => normalize(m.id ?? m.uid)), // 🔥 add this
 
@@ -269,7 +269,7 @@ const acceptCall = useCallback(
 
      await updateDoc(callRef, {
       status: "active",
-      [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true },
+      [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true, name: currentuserIs?.name },
       [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(), // 🔑 trigger fresh offer
     });
 
