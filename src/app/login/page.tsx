@@ -57,10 +57,11 @@ const {toast} = useToast();
   try {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
-
+console.log("result", result)
     const email = result.user.email;
     if (!email) throw new Error("No email from Google");
-if(!email) return;
+if(!email) return    await signOut(auth);
+
     // 1. Check if Firebase has this email registered
 //     const methods = await fetchSignInMethodsForEmail(auth, email);
 //     if (methods.length === 0) {

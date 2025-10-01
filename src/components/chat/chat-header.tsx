@@ -28,7 +28,9 @@ audiocall: any;
 export default function ChatHeader({ group , onOpenChange, callId , videoCall, audiocall}: ChatHeaderProps) {
   const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
-    const [isAudioCallOpen, setIsAudioCallOpen] = useState(false)
+    const [isAudioCallOpen, setIsAudioCallOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+
 const {userData, user} = useAuth();
 const router = useRouter();
 const currentuserIs = {
@@ -38,6 +40,8 @@ const currentuserIs = {
   familyId: userData?.familyId,
   isOnline: userData?.isActive,
 };
+
+
 
   const {
     localVideoRef,
@@ -54,8 +58,12 @@ const currentuserIs = {
     caller,
     callId: hookCallId,
   } = useWebRTCCall({ currentuserIs });
-  const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
-  const [open, setOpen] = useState(false);
+
+        const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
+
+
+
+
 
 
 const normalizeMembersForCall = (members: User[]) =>

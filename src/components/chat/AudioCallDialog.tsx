@@ -41,6 +41,8 @@ export default function AudioCallDialog({ isOpen, onOpenChange,callerId, members
   
 const [incomingCall, setIncomingCall] = useState<any>();
   const [isopen, setisopen] = useState(true)
+const [onlyActive, setonlyActive] = useState(false)
+  const [ringtone, setRingtone] = useState<HTMLAudioElement | null>(null);
 
 const participants = useCallParticipants(callId);
 const [ringoff,setringoff] = useState(false);
@@ -163,7 +165,6 @@ setringoff(true)
 setisopen(false);
 }
 
-const [onlyActive, setonlyActive] = useState(false)
 
 useEffect(() => {
   // Check if there are NO participants
@@ -179,7 +180,7 @@ useEffect(() => {
   }
 }, [participants]);
 
-if(onlyActive  ){
+if(onlyActive){
 
   return(
          <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
@@ -205,7 +206,6 @@ if(onlyActive  ){
   // }, [audiocaller, incomingCall])
     const isCaller = callerId !== currentuserIs?.id
 
-  const [ringtone, setRingtone] = useState<HTMLAudioElement | null>(null);
 
 
 useEffect(() => {
@@ -287,7 +287,7 @@ if (
 
   )
     
-          }
+          };
 
   return (
     <Dialog

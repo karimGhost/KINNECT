@@ -70,7 +70,7 @@ const {userData,user} = useAuth();
                 <Link href="/moderation" className="w-full">
                     <SidebarMenuButton tooltip="Intelligent Moderator">
                       
-                      {currentUserIsAdmin && <> <BotMessageSquare /> <span>Moderator</span> </>   }
+                      {/* {currentUserIsAdmin && <> <BotMessageSquare /> <span>Moderator</span> </>   } */}
                     </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
