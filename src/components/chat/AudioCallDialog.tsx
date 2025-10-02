@@ -231,7 +231,7 @@ useEffect(() => {
 useEffect(() => {
   let ring: HTMLAudioElement | null = null;
 
-  if (status === "ringing" && !isCaller) {
+  if ( incomingCall.status === "ringing" && !isCaller) {
     ring = new Audio("/sounds/incoming-call.mp3");
     ring.loop = true;
     ring.play().catch(() => {});
@@ -244,7 +244,7 @@ useEffect(() => {
       ring.currentTime = 0;
     }
   };
-}, [status]);
+}, [incomingCall]);
 
 
 
