@@ -68,7 +68,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
 
       const EndCallMessage = async () => {
     
-        if(audiocaller?.author?.id  !== user?.uid) return;
+        if(callerId !== user?.uid) return;
       try {
         if (!groupId) return;
         const messagesCol = collection(db, "families", groupId, "messages");
@@ -167,30 +167,17 @@ setisopen(false);
 
 
 useEffect(() => {
-  // Check if there are NO participants
-  if (Object.keys(participants).length === 0) {
+  if (participants && Object.keys(participants).length === 0) {
     const timer = setTimeout(() => {
       handlehungup();
-      setonlyActive(true)
-      
-    }, 60 * 1000); // 1 minute in ms
+      setonlyActive(true);
+    }, 5 * 60 * 1000); // 5 minutes in ms
 
-    // Cleanup if participants change before timeout
     return () => clearTimeout(timer);
   }
 }, [participants]);
 
-if(onlyActive){
 
-  return(
-         <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
-              <p className="text-xl">{audiocaller?.author?.name} Opps ended the call, Looks Like you are the only one on call for long...</p>
-              <div className="flex gap-4">
-            <Button onClick={() => setonlyActive(false)}>exit</Button>
-              </div>
-            </div>
-      )
-}
 
 
 
@@ -227,25 +214,30 @@ useEffect(() => {
 }, [status, ringoff]);
 
 
-  // Start a call
 useEffect(() => {
   let ring: HTMLAudioElement | null = null;
 
-  if ( incomingCall?.status === "ringing" && !isCaller) {
+  if (incomingCall?.status === "ringing" && callerId !== user?.uid) {
     ring = new Audio("/sounds/incoming-call.mp3");
     ring.loop = true;
-    ring.play().catch(() => {});
+
+    ring
+      .play()
+      .then(() => {
+        setRingtone(ring); // store reference if needed
+      })
+      .catch((err) => {
+        console.warn("Unable to play ringtone:", err);
+      });
   }
 
-  // ✅ cleanup when status changes or component unmounts
   return () => {
     if (ring) {
       ring.pause();
       ring.currentTime = 0;
     }
   };
-}, [incomingCall]);
-
+}, [incomingCall?.status, callerId, user?.uid]);
 
 
   const handleStart = async () => {
@@ -262,21 +254,39 @@ useEffect(() => {
   const handleAccept = async () => {
     setringoff(true)
      if (!incomingCall) return;
+
   await acceptCall(incomingCall?.id, incomingCall?.members);
 
     onOpenChange(true)
 setisopen(false);
   }
 
+if(participants && onlyActive){
+
+  return(
+         <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
+              <p className="text-xl">{audiocaller?.author?.name} Opps ended the call, Looks Like you are the only one on call for long...</p>
+              <div className="flex gap-4">
+            <Button onClick={() => setonlyActive(false)}>exit</Button>
+              </div>
+            </div>
+      )
+}
 
 
-if (
-  incomingCall &&
-  incomingCall.from !== currentuserIs.id &&
-  incomingCall.status === "ringing" &&
-  isopen
-) {  return(
- <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
+// useEffect(() =>{
+// console.log("incomingCall", incomingCall?.status)
+// },[incomingCall])
+
+const showIncomingCall =
+    incomingCall &&
+    incomingCall.from !== user?.uid &&
+    incomingCall.status === "ringing" &&
+    isopen;
+
+if(showIncomingCall){
+  return(
+      <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
               <p className="text-xl">{audiocaller?.author?.name} is calling...</p>
               <div className="flex gap-4">
  <Button onClick={handleAccept} className="bg-green-600 text-white">
@@ -284,10 +294,11 @@ if (
             </Button>                <Button onClick={handlehungup}  variant="destructive">Decline</Button>
               </div>
             </div>
-
   )
-    
-          };
+}
+   
+
+
 
   return (
     <Dialog

@@ -40,10 +40,14 @@ export default function Home() {
   };
 
 
-    if(user){
 
-    router.push("/dashboard")
-  }
+
+   useEffect(() => {
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
+  
    if( loading){
     return <Spinner />
   
