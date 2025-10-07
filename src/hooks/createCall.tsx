@@ -21,7 +21,7 @@ const rtcConfig: RTCConfiguration = {
 };
 
 export async function createCall(callId: string, localStream: MediaStream) {
-  const callRef = doc(db, "calls", callId);
+  const callRef = doc(db, "Audiocalls", callId);
   const offerCandidates = collection(callRef, "offerCandidates");
   const answerCandidates = collection(callRef, "answerCandidates");
 
@@ -76,7 +76,7 @@ export async function createCall(callId: string, localStream: MediaStream) {
 }
 
 export async function joinCall(callId: string, localStream: MediaStream) {
-  const callRef = doc(db, "calls", callId);
+  const callRef = doc(db, "Audiocalls", callId);
   const offerCandidates = collection(callRef, "offerCandidates");
   const answerCandidates = collection(callRef, "answerCandidates");
 

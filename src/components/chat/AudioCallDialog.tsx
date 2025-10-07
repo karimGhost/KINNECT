@@ -47,7 +47,7 @@ const [onlyActive, setonlyActive] = useState(false)
 const participants = useCallParticipants(callId);
 const [ringoff,setringoff] = useState(false);
 
-// useEffect(() => {
+// useEffect(() => { createCall
 // console.log("incomingCall", incomingCall)
 // }, [incomingCall]) {id: 'c2b9db30-14ae-4df0-8d8b-e2b72b0ae795', from: 'LbgXIt9xlTfZGLDGLZXcsBnOmF33', members: Array(4), status: 'ringing'}
 
@@ -104,8 +104,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
         metadata: { callId },
   
         });
-    
-    
+  location.reload();    
       } catch (err) {
         console.error("Failed to post call message:", err);
       }
@@ -190,18 +189,22 @@ useEffect(() => {
   //     }  {id: 'c2b9db30-14ae-4df0-8d8b-e2b72b0ae795', from: 'LbgXIt9xlTfZGLDGLZXcsBnOmF33', members: Array(4), status: 'ringing'}
   
   
-  // }, [audiocaller, incomingCall])
-    const isCaller = callerId !== currentuserIs?.id
+  // }, [audiocaller, calls incomingCall])
+    const isCaller = audiocaller?.author?.id === user?.uid;
 
 
 
 useEffect(() => {
-  if (status === "ringing" &&  isCaller) {
+  if (status === "ringing" &&  audiocaller?.author?.id === user?.uid) {
     const audio = new Audio("/sounds/phone-call.mp3");
     audio.loop = true;
     audio.play().catch(() => {});
     setRingtone(audio);
 
+    if(Object.keys(participants).length > 0){
+                ringtone?.pause();
+
+    }
 
     if(ringoff){
           ringtone?.pause();
@@ -211,13 +214,13 @@ useEffect(() => {
     ringtone?.pause();
     ringtone && (ringtone.currentTime = 0);
   }
-}, [status, ringoff]);
+}, [status, ringoff,audiocaller?.author?.id]);
 
 
 useEffect(() => {
   let ring: HTMLAudioElement | null = null;
 
-  if (incomingCall?.status === "ringing" && callerId !== user?.uid) {
+  if (incomingCall?.status === "ringing" && audiocaller?.author?.id !== user?.uid) {
     ring = new Audio("/sounds/incoming-call.mp3");
     ring.loop = true;
 
@@ -237,7 +240,7 @@ useEffect(() => {
       ring.currentTime = 0;
     }
   };
-}, [incomingCall?.status, callerId, user?.uid]);
+}, [incomingCall?.status, audiocaller?.author?.id, user?.uid]);
 
 
   const handleStart = async () => {

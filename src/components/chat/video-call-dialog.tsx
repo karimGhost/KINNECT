@@ -14,8 +14,8 @@ import { addDoc, collection, getDocs, query, serverTimestamp, updateDoc, where }
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { User } from "@/types";
-import { useIncomingCalls } from "@/hooks/useIncomingCalls";
-import { useCallParticipants } from "@/hooks/useCallParticipants";
+import { useVCallParticipants } from "@/hooks/useVCallParticipants";
+import { useIncomingVCalls } from "@/hooks/useIncomingVCalls";
 interface Member {
   uid(uid?: any): unknown; id?: string; name?: string; avatar?: string; fullName?: string 
 }
@@ -64,7 +64,7 @@ const [ringoff,setringoff] = useState(false);
     if (!internalCallId && hookCallId) setInternalCallId(hookCallId);
   }, [hookCallId, internalCallId]);
 
-useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller: any; members: any }) => {
+useIncomingVCalls(currentuserIs.id, (callId: any, callData: { status: any; caller: any; members: any }) => {
   setIncomingCall({
     id: callId,
     from: callData.caller.id,
@@ -73,10 +73,11 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
   });
 });
 
-const participants = useCallParticipants(callId);
+const participants = useVCallParticipants(hookCallId);
 
 
   const EndCallMessage = async () => {
+setringoff(true)
 
     if(videocalling?.author?.id  !== user?.uid) return;
   try {
@@ -93,6 +94,7 @@ const participants = useCallParticipants(callId);
       metadata: { callId },
     });
 
+  location.reload();    
 
   } catch (err) {
     console.error("Failed to post call message:", err);
@@ -156,6 +158,8 @@ setisopen(false);
 
 
   const endCall = async () => {
+    setringoff(true)
+
     const callId = callerId;
   try {
     if (!groupId) return;
@@ -210,7 +214,7 @@ EndCallMessage()
 
 
 const [ringtone, setRingtone] = useState<HTMLAudioElement | null>(null);
-  const isCaller = callerId !== currentuserIs?.id
+  const isCaller = videocalling?.author?.id !== currentuserIs?.id
 
 
 // useEffect(() => {
@@ -224,13 +228,41 @@ const [ringtone, setRingtone] = useState<HTMLAudioElement | null>(null);
 //     ringtone && (ringtone.currentTime = 0);
 //   }
 // }, [status]);
+useEffect(() => {
+  if (participants && Object.keys(participants).length === 0) {
+    const timer = setTimeout(() => {
+      handleEnd();
+      // setonlyActive(true);
+    }, 5 * 60 * 1000); // 5 minutes in ms
 
+    return () => clearTimeout(timer);
+  }
+}, [participants]);
+
+
+// useEffect(() => {
+
+//   if (status === "ringing" &&  videocalling?.author?.id === user?.uid) {
+//     const audio = new Audio("/sounds/phone-call.mp3");
+//     audio.loop = true;
+//     audio.play().catch(() => {});
+//     setRingtone(audio);
+
+//     if(ringoff){
+//           ringtone?.pause();
+// setRingtone(null)
+//     }
+//   } else if (status === "active" || status === "ended") {
+//     ringtone?.pause();
+//     ringtone && (ringtone.currentTime = 0);
+//   }
+// }, [status, ringoff, videocalling?.author?.id]);
 
   // Start a call
 useEffect(() => {
   let ring: HTMLAudioElement | null = null;
 setringoff(false);
-  if (status === "ringing" && !isCaller) {
+  if (status === "ringing" && videocalling?.author?.id !== user?.uid) {
     ring = new Audio("/sounds/incoming-call.mp3");
     ring.loop = true;
     ring.play().catch(() => {});
@@ -238,6 +270,7 @@ setringoff(false);
 
   if( ringoff && ring){
           ring.pause();
+setRingtone(null)
 
   }
   // ✅ cleanup when status changes or component unmounts
@@ -247,7 +280,7 @@ setringoff(false);
       ring.currentTime = 0;
     }
   };
-}, [status, ringoff]);
+}, [status, ringoff, videocalling?.author?.id]);
 
   useEffect(() => {
 
@@ -297,7 +330,7 @@ const postCallMessage = async (callId: any) => {
 
       replyTo:  "",
             replyAuthorName: "",
-                  replyPreview: "", // short snippet
+                  replyPreview: "", // short snippet createCall useIncomingcall
 
 
       fileUrl: "",

@@ -2,12 +2,12 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useEffect } from "react";
 
-export function useIncomingCalls(userId: any, onIncoming: any) {
+export function useIncomingVCalls(userId: any, onIncoming: any) {
   useEffect(() => {
     if (!userId) return;
 
     const q = query(
-      collection(db, "Audiocalls"),
+      collection(db, "calls"),
       where("members", "array-contains", userId)
     );
 

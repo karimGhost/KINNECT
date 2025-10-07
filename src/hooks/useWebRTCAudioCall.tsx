@@ -294,7 +294,7 @@ const pc = new RTCPeerConnection({
       await startLocalStream();
 
       const id = crypto.randomUUID();
-      const callRef = doc(db, "calls", id);
+      const callRef = doc(db, "Audiocalls", id);
       callDocRef.current = callRef;
       setCallId(id);
 
@@ -394,7 +394,7 @@ const pc = new RTCPeerConnection({
   const acceptCall = useCallback(
     async (id: string, members: Member[]) => {
       await startLocalStream();
-      const callRef = doc(db, "calls", id);
+      const callRef = doc(db, "Audiocalls", id);
       callDocRef.current = callRef;
       setCallId(id);
 
@@ -456,7 +456,7 @@ const pc = new RTCPeerConnection({
         unsubRef.current.push(unsubCallee);
       }
 
-      // listen for call doc updates (same as caller)
+      // createCall listen for call doc updates (same as caller)
       const unsubDoc = onSnapshot(callRef, (snapDoc) => {
         const d = snapDoc.data() || {};
         if (d.status) setStatus(d.status);
@@ -486,7 +486,7 @@ const pc = new RTCPeerConnection({
 
   const declineCall = useCallback(async (id: string) => {
     try {
-      const callRef = doc(db, "calls", id);
+      const callRef = doc(db, "Audiocalls", id);
       await updateDoc(callRef, { status: "ended" });
     } catch (err) {
       console.warn("decline update error", err);
@@ -497,7 +497,7 @@ const pc = new RTCPeerConnection({
 
   const toggleMute = useCallback(async () => {
     if (!callId || !currentuserIs) return;
-    const callRef = doc(db, "calls", callId);
+    const callRef = doc(db, "Audiocalls", callId);
     const myId = normalize(currentuserIs?.id);
     const newState = !muted[myId];
     setMuted((p) => ({ ...p, [myId]: newState }));
@@ -512,7 +512,7 @@ const pc = new RTCPeerConnection({
   const hangUp = useCallback(async () => {
     try {
       if (callId) {
-        const callRef = doc(db, "calls", callId);
+        const callRef = doc(db, "Audiocalls", callId);
         await updateDoc(callRef, {
           status: "ended",
           [`participants.${normalize(currentuserIs?.id)}`]: { muted: true },
