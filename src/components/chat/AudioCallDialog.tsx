@@ -68,7 +68,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
 
       const EndCallMessage = async () => {
     
-        if(callerId !== user?.uid) return;
+        if(audiocaller?.author?.id !== user?.uid) return;
       try {
         if (!groupId) return;
         const messagesCol = collection(db, "families", groupId, "messages");
