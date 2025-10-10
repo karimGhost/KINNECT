@@ -259,28 +259,28 @@ useEffect(() => {
 // }, [status, ringoff, videocalling?.author?.id]);
 
   // Start a call
-useEffect(() => {
-  let ring: HTMLAudioElement | null = null;
-setringoff(false);
-  if (status === "ringing" && videocalling?.author?.id !== user?.uid) {
-    ring = new Audio("/sounds/incoming-call.mp3");
-    ring.loop = true;
-    ring.play().catch(() => {});
-  }
+// useEffect(() => {
+//   let ring: HTMLAudioElement | null = null;
+// setringoff(false);
+//   if (status === "ringing" && videocalling?.author?.id !== user?.uid) {
+//     ring = new Audio("/sounds/incoming-call.mp3");
+//     ring.loop = true;
+//     ring.play().catch(() => {});
+//   }
 
-  if( ringoff && ring){
-          ring.pause();
-setRingtone(null)
+//   if( ringoff && ring){
+//           ring.pause();
+// setRingtone(null)
 
-  }
-  // ✅ cleanup when status changes or component unmounts
-  return () => {
-    if (ring) {
-      ring.pause();
-      ring.currentTime = 0;
-    }
-  };
-}, [status, ringoff, videocalling?.author?.id]);
+//   }
+//   // ✅ cleanup when status changes or component unmounts
+//   return () => {
+//     if (ring) {
+//       ring.pause();
+//       ring.currentTime = 0;
+//     }
+//   };
+// }, [status, ringoff, videocalling?.author?.id]);
 
   useEffect(() => {
 

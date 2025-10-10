@@ -53,8 +53,11 @@ const [ringoff,setringoff] = useState(false);
 
 const router = useRouter()
 
+useEffect(()=>{
+console.log("audiocaller", audiocaller)
+},[audiocaller])
 
-useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller: any; members: any }) => {
+useIncomingCalls(currentuserIs.id, (callId: any, callData: {ended:any, status: any; caller: any; members: any }) => {
   setIncomingCall({
     id: callId,
     from: callData.caller.id,
@@ -62,6 +65,9 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
     status: callData.status,
   });
 });
+
+
+
 
 
 
@@ -97,7 +103,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
 
         type: "Call_Ended",
         callId,
-        ended: true,
+        ended: false,
         from: { id: currentuserIs?.id, name: currentuserIs?.name },
           text: `${currentuserIs?.name} ended a voice call`,
         // optional: any extra metadata your chat uses:
@@ -134,10 +140,10 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
   
         fileUrl: "",
        
-  
+
         type: "V_call_invite",
         callId,
-        ended: false,
+        ended: true,
         from: { id: currentuserIs?.id, name: currentuserIs?.name },
         text: `${currentuserIs?.name} started a Voice call`,
         // optional: any extra metadata your chat uses:
@@ -152,15 +158,16 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: { status: any; caller
   
 
   const handlehungup = () => {
-setringoff(true)
+setringoff(true);
     if(audiocaller?.author?.id  === user?.uid){
         EndCallMessage();
-
+ hangUp();
    router.refresh();
+ location.reload();
 
     }
-  hangUp();
-   onOpenChange(false)
+    setRingtone(null)
+   onOpenChange(false);
 setisopen(false);
 }
 
@@ -191,11 +198,25 @@ useEffect(() => {
   
   // }, [audiocaller, calls incomingCall])
     const isCaller = audiocaller?.author?.id === user?.uid;
-
+useEffect(() =>{
+if(incomingCall?.status === "ended"){
+  setisopen(false);
+  setIncomingCall({
+    id: "",
+    from:"",
+    members: "",
+    status: "",
+ended: ""
+  });
+}
+},[incomingCall])
 
 
 useEffect(() => {
-  if (status === "ringing" &&  audiocaller?.author?.id === user?.uid) {
+
+  if (status === "ringing" &&   incomingCall?.from === user?.uid) {
+    console.log("called", audiocaller)
+
     const audio = new Audio("/sounds/phone-call.mp3");
     audio.loop = true;
     audio.play().catch(() => {});
@@ -214,13 +235,15 @@ useEffect(() => {
     ringtone?.pause();
     ringtone && (ringtone.currentTime = 0);
   }
-}, [status, ringoff,audiocaller?.author?.id]);
+}, [status, ringoff]);
 
 
 useEffect(() => {
   let ring: HTMLAudioElement | null = null;
+  if(!audiocaller) return;
 
-  if (incomingCall?.status === "ringing" && audiocaller?.author?.id !== user?.uid) {
+  if (incomingCall?.status === "ringing" && incomingCall?.from !== user?.uid) {
+    console.log("caller", incomingCall)
     ring = new Audio("/sounds/incoming-call.mp3");
     ring.loop = true;
 
@@ -234,13 +257,18 @@ useEffect(() => {
       });
   }
 
+   if(ringoff){
+          ring?.pause();
+
+    }
+
   return () => {
     if (ring) {
       ring.pause();
       ring.currentTime = 0;
     }
   };
-}, [incomingCall?.status, audiocaller?.author?.id, user?.uid]);
+}, [incomingCall?.status,audiocaller,ringoff, audiocaller?.author?.id, user?.uid]);
 
 
   const handleStart = async () => {
@@ -281,11 +309,13 @@ if(participants && onlyActive){
 // console.log("incomingCall", incomingCall?.status)
 // },[incomingCall])
 
+
 const showIncomingCall =
     incomingCall &&
     incomingCall.from !== user?.uid &&
     incomingCall.status === "ringing" &&
-    isopen;
+    audiocaller?.ended  &&
+     isopen;
 
 if(showIncomingCall){
   return(
@@ -317,7 +347,7 @@ if(showIncomingCall){
   className="flex flex-col items-center space-y-6 [&_button.absolute.right-4.top-4]:hidden"
   >
   <DialogHeader className="text-center">
-          <DialogTitle>Audio Call</DialogTitle>
+          <DialogTitle>Audio Call {incomingCall?.status}</DialogTitle>
           <DialogDescription>
              <div className="p-4">
       <p className="font-semibold mb-2">

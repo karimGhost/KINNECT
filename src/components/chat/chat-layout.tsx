@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/useAuth"
 import ChatView from "@/components/chat/chat-view"
 import { useFamilyChat } from "@/hooks/useFamilyChat" // live messages
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { Card } from "../ui/card"
 import { useRouter } from "next/navigation"
 
@@ -11,6 +11,9 @@ export default function ChatLayout() {
   const { userData, user } = useAuth()
   const { messages, loading , videoCall, audiocall} = useFamilyChat(userData?.familyId)
  const containerRef = useRef<HTMLDivElement | null>(null)
+
+
+
 
    const router = useRouter();
   // if(!user && loading){
