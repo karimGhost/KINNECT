@@ -72,49 +72,63 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: {ended:any, status: a
 
 
 
-      const EndCallMessage = async () => {
-    
-        if(audiocaller?.author?.id !== user?.uid) return;
-      try {
-        if (!groupId) return;
-        const messagesCol = collection(db, "families", groupId, "messages");
-        // customize the message shape to match your app's messages schema
-        await addDoc(messagesCol, {
-  
-  
-        author: {
-          id: user?.uid,
-          name: userData?.fullName,
-          avatar: userData.avatarUrl,
-          isOnline: true
-        },
-  
-        createdAt: serverTimestamp(),
-            reactions: {},
-  
-        replyTo:  "",
-              replyAuthorName: "",
-                    replyPreview: "", // short snippet
-  
-  
-        fileUrl: "",
-       
-    call:"ended",
+   const EndCallMessage = async () => {
+  if (incomingCall?.from !== user?.uid) return;
 
-        type: "Call_Ended",
-        callId,
-        ended: false,
-        from: { id: currentuserIs?.id, name: currentuserIs?.name },
-          text: `${currentuserIs?.name} ended a voice call`,
-        // optional: any extra metadata your chat uses:
-        metadata: { callId },
-  
-        });
-  location.reload();    
-      } catch (err) {
-        console.error("Failed to post call message:", err);
-      }
-    };
+  try {
+    if (!groupId) return;
+
+    const messagesCol = collection(db, "families", groupId, "messages");
+
+    // Query all messages with the matching callId
+    const q = query(messagesCol, where("callId", "==", callId));  // fixed casing: "callId"
+    const querySnapshot = await getDocs(q);
+
+    // Update all matching call messages to mark as ended
+    const updatePromises = querySnapshot.docs.map((docSnap) => {
+      const docRef = docSnap.ref;
+      return updateDoc(docRef, {
+              ended: false,
+
+      });
+    });
+
+    await Promise.all(updatePromises);
+
+    // Add a new message indicating the call has ended
+    await addDoc(messagesCol, {
+      author: {
+        id: user?.uid,
+        name: userData?.fullName,
+        avatar: userData?.avatarUrl,
+        isOnline: true
+      },
+      createdAt: serverTimestamp(),
+      reactions: {},
+      replyTo: "",
+      replyAuthorName: "",
+      replyPreview: "",
+      fileUrl: "",
+      call: "ended",
+      type: "Call_Ended",
+      callId,  // Ensure this is defined in your scope
+      ended: false,
+      from: {
+        id: currentuserIs?.id,
+        name: currentuserIs?.name
+      },
+      text: `${currentuserIs?.name} ended a voice call`,
+      metadata: { callId }
+    });
+
+    // Refresh the UI
+    location.reload();
+
+  } catch (err) {
+    console.error("Failed to post call message:", err);
+  }
+};
+
   const postCallMessage = async (callId: string) => {
     try {
       if (!groupId) return;
@@ -159,7 +173,7 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: {ended:any, status: a
 
   const handlehungup = () => {
 setringoff(true);
-    if(audiocaller?.author?.id  === user?.uid){
+    if(incomingCall?.from  === user?.uid){
         EndCallMessage();
  hangUp();
    router.refresh();
@@ -305,18 +319,19 @@ if(participants && onlyActive){
 }
 
 
-// useEffect(() =>{
-// console.log("incomingCall", incomingCall?.status)
-// },[incomingCall])
+
 
 
 const showIncomingCall =
     incomingCall &&
-    incomingCall.from !== user?.uid &&
-    incomingCall.status === "ringing" &&
-    audiocaller?.ended  &&
+    incomingCall?.from !== user?.uid &&
+    incomingCall?.status === "ringing" &&
      isopen;
 
+useEffect(() =>{
+console.log("incomingCall",     incomingCall?.from 
+)
+},[user])
 if(showIncomingCall){
   return(
       <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
