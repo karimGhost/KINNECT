@@ -155,9 +155,9 @@ const normalizeMembersForCall = (members: User[]) =>
 
   const approvedMembers = members.filter((m) => m?.approved);
 
-  useEffect(()=>{
-console.log("videoCall", videoCall)
-  },[videoCall])
+//   useEffect(()=>{
+// console.log("videoCall", videoCall)
+//   },[videoCall])
 
   // if(open){
   //   return(
@@ -311,6 +311,7 @@ audiocaller={audiocall}
         onOpenChange={setIsAudioCallOpen}
         members={approvedMembers}
         groupId={userData?.familyId}
+        
         currentuserIs={{
         id: user?.uid,
         name: userData?.fullName,

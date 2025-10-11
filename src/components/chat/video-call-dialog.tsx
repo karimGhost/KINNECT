@@ -58,6 +58,12 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
   const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
 const [incomingCall, setIncomingCall] = useState<any>();
 const [ringoff,setringoff] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+
+  const handleClick = (index: any) => {
+    setFocusedIndex(index === focusedIndex ? null : index);
+  };
+
 
   useEffect(() => {
     // sync with hook callId if not set
@@ -259,28 +265,28 @@ useEffect(() => {
 // }, [status, ringoff, videocalling?.author?.id]);
 
   // Start a call
-// useEffect(() => {
-//   let ring: HTMLAudioElement | null = null;
-// setringoff(false);
-//   if (status === "ringing" && videocalling?.author?.id !== user?.uid) {
-//     ring = new Audio("/sounds/incoming-call.mp3");
-//     ring.loop = true;
-//     ring.play().catch(() => {});
-//   }
+useEffect(() => {
+  let ring: HTMLAudioElement | null = null;
+setringoff(false);
+  if (status === "ringing" && videocalling?.author?.id !== user?.uid) {
+    ring = new Audio("/sounds/incoming-call.mp3");
+    ring.loop = true;
+    ring.play().catch(() => {});
+  }
 
-//   if( ringoff && ring){
-//           ring.pause();
-// setRingtone(null)
+  if( ringoff && ring){
+          ring.pause();
+setRingtone(null)
 
-//   }
-//   // ✅ cleanup when status changes or component unmounts
-//   return () => {
-//     if (ring) {
-//       ring.pause();
-//       ring.currentTime = 0;
-//     }
-//   };
-// }, [status, ringoff, videocalling?.author?.id]);
+  }
+  // ✅ cleanup when status changes or component unmounts
+  return () => {
+    if (ring) {
+      ring.pause();
+      ring.currentTime = 0;
+    }
+  };
+}, [status, ringoff, videocalling?.author?.id]);
 
   useEffect(() => {
 
@@ -296,15 +302,16 @@ setisopen(false);
 }, [videocalling, status, internalCallId])
 
   // responsive grid helper
-  const getGridCols = (count: number) => {
-    if (count <= 1) return "grid-cols-1";
-    if (count === 2) return "grid-cols-1 md:grid-cols-2";
-    if (count === 3) return "grid-cols-1 md:grid-cols-3";
-    if (count === 4) return "grid-cols-2 md:grid-cols-2";
-    if (count <= 6) return "grid-cols-2 md:grid-cols-3";
-    if (count <= 9) return "grid-cols-2 md:grid-cols-3 lg:grid-cols-3";
-    return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
-  };
+const getGridCols = (count: number) => {
+  if (count <= 1) return "grid-cols-1";
+  if (count === 2) return "grid-cols-2"; // two side by side on all screens
+  if (count === 3) return "grid-cols-2 md:grid-cols-3"; 
+  if (count === 4) return "grid-cols-2 md:grid-cols-2 lg:grid-cols-4";
+  if (count <= 6) return "grid-cols-2 md:grid-cols-3";
+  if (count <= 9) return "grid-cols-2 md:grid-cols-3 lg:grid-cols-3";
+  return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+};
+
 
 
 
@@ -378,6 +385,19 @@ console.log("members",  memberId , user?.uid)
 },[members])
 
 
+if (focusedIndex !== null) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-black">
+        <div className="w-full max-w-4xl aspect-video relative">
+          <div
+            className="absolute inset-0 z-10 cursor-pointer"
+            onClick={() => setFocusedIndex(null)}
+          />
+          {videoOn[focusedIndex]}
+        </div>
+      </div>
+    );
+  }
 if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isopen  ){
 
   return(
@@ -436,8 +456,10 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
             }
           </div>
         </DialogHeader>
+<div className="aspect-w-1 aspect-h-1">
 
-        <div className={cn("flex-1 grid gap-2 p-4 overflow-y-auto bg-muted/20", getGridCols(members.length))}>
+
+        <div className={cn("flex-1 grid gap-2 p-4 sm:gap-4 overflow-y-auto bg-muted/20", getGridCols(members.length))}>
          {members.map((member) => {
 const memberId = member.id ?? member.uid;
   const isCurrentUser = memberId === user?.uid;
@@ -447,8 +469,11 @@ const memberId = member.id ?? member.uid;
   return (
     <div
       key={memberId}
-      className="relative aspect-video bg-card rounded-lg overflow-hidden flex items-center justify-center border"
-    >
+      className="relative aspect-video bg-card rounded-lg bg-black rounded overflow-hidden flex items-center justify-center border"
+            onClick={() => handleClick(memberId)}
+
+  
+  >
    <video
   ref={isCurrentUser ? localVideoRef : remoteRef}
   autoPlay
@@ -481,12 +506,13 @@ const memberId = member.id ?? member.uid;
         )}
       </div>
     </div>
+  
   );
 
 })}
 
 
-
+</div>
           {/* Ringing overlay (for non-caller participants) */}
        
         </div>

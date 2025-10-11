@@ -188,6 +188,7 @@ setisopen(false);
 
 
 useEffect(() => {
+  console.log("participants",participants )
   if (participants && Object.keys(participants).length === 0) {
     const timer = setTimeout(() => {
       handlehungup();
