@@ -52,46 +52,51 @@ const {toast} = useToast();
     }
   };
 
-  // Google login
-  const handleGoogleLogin = async () => {
+const [isLoading, setIsLoading] = useState(false);
+
+
+
+ const handleGoogleLogin = async () => {
+  if (isLoading) return; // ⛔ Prevent multiple clicks
+  setIsLoading(true);     // ✅ Start loading
+
   try {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
-console.log("result", result)
-    const email = result.user.email;
-    if (!email) throw new Error("No email from Google");
-if(!email) return    await signOut(auth);
 
-    // 1. Check if Firebase has this email registered
-//     const methods = await fetchSignInMethodsForEmail(auth, email);
-//     if (methods.length === 0) {
-//       await signOut(auth);
-//  toast({
-//         title: "Account not found",
-//         description: "This Google account is not registered. Please sign up first.",
-//         variant: "destructive",
-//       });
+    console.log("Google sign-in result:", result);
 
-//         }
+    const email = result.user?.email;
+    if (!email) {
+      await signOut(auth);
+      throw new Error("No email returned from Google. Please use an account with an email address.");
+    }
 
-    // 2. Check if Firestore profile exists
-    const userDoc = await getDoc(doc(db, "users", result.user.uid));
-    if (!userDoc.exists()) {
+    const userDocRef = doc(db, "users", result.user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
       await signOut(auth);
       throw new Error("No account found. Please sign up first.");
     }
 
     // ✅ User exists, proceed
     console.log("Welcome back:", result.user.displayName);
-      router.push("/dashboard");
+    router.push("/dashboard");
 
   } catch (err: any) {
-toast({
+    console.error("Google login error:", err);
+    toast({
       title: "Google sign-in failed",
-      description: getFriendlyError(err.code),
+      description: getFriendlyError(err.code || err.message || "unknown_error"),
       variant: "destructive",
-    });  }
+    });
+
+  } finally {
+    setIsLoading(false); // ✅ Done loading
+  }
 };
+
   // Phone login (redirect to separate phone auth page)
   const handlePhoneLogin = () => {
     router.push("/login/phone");
@@ -162,9 +167,11 @@ toast({
           <Button
             onClick={handleGoogleLogin}
             variant="outline"
+            disabled={isLoading}
             className="w-full flex items-center justify-center gap-2"
           >
-            <Chrome className="w-4 h-4 mr-2" /> Google
+            <Chrome className="w-4 h-4 mr-2" />   {isLoading ? "Signing in..." : "Sign in with Google"}
+
             
           </Button>
 

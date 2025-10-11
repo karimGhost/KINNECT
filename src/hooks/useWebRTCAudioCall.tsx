@@ -13,7 +13,7 @@ import {
   deleteField,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
+import { useAuth } from "./useAuth";
 type Member = { id?: string; uid?: string; name?: string };
 
 const RTC_CONFIG: RTCConfiguration = {
@@ -23,7 +23,7 @@ const RTC_CONFIG: RTCConfiguration = {
 export function useWebRTCAudioCall({ currentuserIs }: { currentuserIs: { id: string; name?: string } }) {
   const localAudioElRef = useRef<HTMLAudioElement | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-
+const {user, userData} = useAuth()
   const remoteAudioElems = useRef<Record<string, HTMLAudioElement | null>>({});
   const inboundStreams = useRef<Record<string, MediaStream>>({});
   const pcsRef = useRef<Record<string, RTCPeerConnection>>({});
@@ -392,15 +392,18 @@ const pc = new RTCPeerConnection({
 
   // ----- acceptCall (callee) -----
   const acceptCall = useCallback(
+   
     async (id: string, members: Member[]) => {
       await startLocalStream();
       const callRef = doc(db, "Audiocalls", id);
       callDocRef.current = callRef;
-      setCallId(id);
+              console.log("user",user)
 
+      setCallId(id);
+console.log("logg",id  )
       await updateDoc(callRef, {
         status: "active",
-        [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, name: currentuserIs?.name },
+        [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, name: user?.displayName},
         [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(),
       }).catch(async (err) => {
         // if doc missing, create it safely

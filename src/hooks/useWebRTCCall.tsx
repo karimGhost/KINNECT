@@ -15,6 +15,7 @@ import {
   deleteField,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "./useAuth";
 
 type Member = any;
 
@@ -30,7 +31,7 @@ export function useWebRTCCall({ currentuserIs }: { currentuserIs: { id: string; 
   const unsubRef = useRef<Array<() => void>>([]);
   const callDocRef = useRef<DocumentReference | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-
+const {user, userData} = useAuth();
   const [isCalling, setIsCalling] = useState(false);
   const [muted, setMuted] = useState<Record<string, boolean>>({});
   const [videoOn, setVideoOn] = useState<Record<string, boolean>>({});
@@ -269,7 +270,7 @@ const acceptCall = useCallback(
 
      await updateDoc(callRef, {
       status: "active",
-      [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true, name: currentuserIs?.name },
+      [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true, name: user?.displayName },
       [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(), // 🔑 trigger fresh offer
     });
 
@@ -376,7 +377,7 @@ useEffect(() => {
     if (!snap.exists()) return;
     const d = snap.data();
 
-    // 📌 normal call status, offers, answers, ICE handling here...
+    // 📌 normal createCall call status, offers, answers, ICE handling here...
     // ---------------------------------------------
 
     // 🔄 renegotiation handler

@@ -74,12 +74,10 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: {ended:any, status: a
 
    const EndCallMessage = async () => {
   if (incomingCall?.from !== user?.uid) return;
-
   try {
     if (!groupId) return;
 
     const messagesCol = collection(db, "families", groupId, "messages");
-
     // Query all messages with the matching callId
     const q = query(messagesCol, where("callId", "==", callId));  // fixed casing: "callId"
     const querySnapshot = await getDocs(q);
@@ -122,7 +120,8 @@ useIncomingCalls(currentuserIs.id, (callId: any, callData: {ended:any, status: a
     });
 
     // Refresh the UI
-    location.reload();
+    router.refresh();
+ location.reload();
 
   } catch (err) {
     console.error("Failed to post call message:", err);
@@ -176,10 +175,12 @@ setringoff(true);
     if(incomingCall?.from  === user?.uid){
         EndCallMessage();
  hangUp();
-   router.refresh();
- location.reload();
+//    router.refresh();
+//  location.reload();
 
     }
+     hangUp();
+
     setRingtone(null)
    onOpenChange(false);
 setisopen(false);
@@ -293,19 +294,28 @@ useEffect(() => {
   }
 
 
+const decline =  () => {
+ onOpenChange(true)
+ setisopen(false);
+console.log("incomingCall", incomingCall)
 
+}
 
-  // Accept (callee)
-  const handleAccept = async () => {
-    setringoff(true)
-     if (!incomingCall) return;
+const handleAccept = async () => {
+  setringoff(true);
 
-  await acceptCall(incomingCall?.id, incomingCall?.members);
+  if (!incomingCall) return;
 
-    onOpenChange(true)
-setisopen(false);
+  try {
+    console.log("Calling acceptCall...",incomingCall);
+    await acceptCall(incomingCall.id, incomingCall.members);
+    console.log("acceptCall finished.", incomingCall);
+
+    decline(); // should be called now
+  } catch (error) {
+    console.error("Error during acceptCall:", error);
   }
-
+};
 if(participants && onlyActive){
 
   return(
@@ -352,7 +362,7 @@ if(showIncomingCall){
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) handlehungup()
+        if (!open) handlehungup();
         onOpenChange(open)
       }}
     >
