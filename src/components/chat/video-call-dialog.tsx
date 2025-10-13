@@ -130,16 +130,20 @@ setringoff(true)
   const [isopen, setisopen] = useState(true)
 
   const handleAccept = async () => {
+                    console.log("ddd", callerId)
+
     setringoff(true)
     const idToUse = callerId  ;
     if (!idToUse) {
       console.error("No call id to accept");
+                console.log("ddd", incomingCall?.id)
+
       return;
     }
     try {
 
       await acceptCall(idToUse, members);
-          console.log("started", idToUse)
+          console.log("ddd", idToUse)
 
       setInternalCallId(idToUse);
 setIsVideoCallOpen(true)
@@ -366,7 +370,7 @@ const handleStart = async () => {
     const id = await startCall(members);
     setInternalCallId(id);
     console.log("started", id)
-    // post call id to group chat so others can join
+    // post call id to group chat so others can join 
     await postCallMessage(id);
     console.log("Call started with id:", id);
   } catch (err) {

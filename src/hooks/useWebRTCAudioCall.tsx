@@ -141,6 +141,17 @@ const getRemoteAudioRef = useCallback((peerIdRaw: string) => {
     }
   }, [/* run on mount + whenever hook's refs mutate: we rely on refs, so leave empty so it runs after mount */]);
 
+
+
+  useEffect(() => {
+  Object.entries(remoteAudioElems.current).forEach(([peerId, el]) => {
+    const stream = inboundStreams.current[peerId];
+    if (el && stream && el.srcObject !== stream) {
+      el.srcObject = stream;
+      el.play().catch(() => {});
+    }
+  });
+}, [remoteAudioElems.current]);
   // ----- get microphone -----
   const startLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
@@ -390,6 +401,7 @@ const pc = new RTCPeerConnection({
     [createPeerConnection, currentuserIs?.id, currentuserIs?.name, startLocalStream]
   );
 
+ 
   // ----- acceptCall (callee) -----
   const acceptCall = useCallback(
    

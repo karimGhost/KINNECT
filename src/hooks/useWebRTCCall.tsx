@@ -75,7 +75,7 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
     (pairKey: string, remotePeerId: string, isCaller: boolean, callRef: DocumentReference | null) => {
       const pc = new RTCPeerConnection(RTC_CONFIG);
 
-      // add local tracks (if available)
+      // add local tracks (if available) RTCPeerConnection remoteVideoElems
       const localStream = localStreamRef.current;
       if (localStream) {
         for (const track of localStream.getTracks()) {
@@ -83,24 +83,32 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
         }
       }
 
-      pc.ontrack = (ev) => {
-        const pid = normalize(remotePeerId);
-        // Compose a MediaStream from incoming tracks
-        const remoteStream = inboundStreams.current[pid] ?? new MediaStream();
+    pc.ontrack = (ev) => {
+  const pid = normalize(remotePeerId);
+  const remoteStream = inboundStreams.current[pid] ?? new MediaStream();
 
-        if (ev.streams && ev.streams.length > 0) {
-          // prefer provided stream
-          inboundStreams.current[pid] = ev.streams[0];
-        } else if (ev.track) {
-          remoteStream.addTrack(ev.track);
-          inboundStreams.current[pid] = remoteStream;
-        }
+  if (ev.streams && ev.streams.length > 0) {
+    inboundStreams.current[pid] = ev.streams[0];
+  } else if (ev.track) {
+    remoteStream.addTrack(ev.track);
+    inboundStreams.current[pid] = remoteStream;
+  }
 
-        const el = remoteVideoElems.current[pid];
-        if (el && inboundStreams.current[pid]) {
-          el.srcObject = inboundStreams.current[pid];
-          el.play().catch(() => {});
-        }
+  // Retry attaching every 250ms until element exists
+  const tryAttach = () => {
+    const el = remoteVideoElems.current[pid];
+    const stream = inboundStreams.current[pid];
+    if (el && stream) {
+      el.srcObject = stream;
+      el.play().catch(() => {});
+    } else {
+      setTimeout(tryAttach, 250);
+    }
+  };
+  tryAttach();
+
+
+    
       };
 
       pc.onicecandidate = async (ev) => {
@@ -120,6 +128,15 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
     []
   );
 
+//   useEffect(() => {
+//   Object.entries(remoteVideoElems.current).forEach(([peerId, el]) => {
+//     const stream = inboundStreams.current[peerId];
+//     if (el && stream && el.srcObject !== stream) {
+//       el.srcObject = stream;
+//     }
+//   });
+// }, [remoteVideoElems.current]);
+
   const cleanup = useCallback(async () => {
     // close peer connections
     Object.values(pcsRef.current).forEach((pc) => {
@@ -129,8 +146,9 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
     });
     pcsRef.current = {};
     inboundStreams.current = {};
-
-    localStreamRef.current?.getTracks().forEach((t) => t.stop());
+if (!localStreamRef.current) {
+  console.warn("No local stream when creating connection");
+}    localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
@@ -162,7 +180,7 @@ setId(id)
     for (const peer of members.filter((m) => String(m.id) !== String(currentuserIs?.id))) {
       const pairKey = `${currentuserIs?.id}_${peer.id}`;
 
-      // ✅ create peer connection with remote peerId
+      // ✅ create peer connection with remote peerId 🔄 Renegotiation requested by LbgXIt9xlTfZGLDGLZXcsBnOmF33
       const pc = createPeerConnection(pairKey, peer.id, true, callRef);
 
       const offer = await pc.createOffer();
@@ -183,7 +201,7 @@ setId(id)
       participants: {
         [normalize(currentuserIs?.id)]: { muted: false, videoOn: true,name: currentuserIs?.name},
       },
-        members: members.map((m) => normalize(m.id ?? m.uid)), // 🔥 add this
+        members: members.map((m) => normalize(m.id ?? m.uid)), // 🔥 add this peerConnection
 
       offers,
       createdAt: Date.now(),
@@ -214,7 +232,7 @@ setId(id)
     });
     unsubRef.current.push(unsubCall);
 
-    // listen for calleeCandidates for each pairKey (callee writes these)
+    // listen for calleeCandidates for each pairKey (callee writes these) createPeerConnection
     for (const peer of members.filter((m) => String(m.id) !== String(currentuserIs?.id))) {
       const pairKey = `${currentuserIs?.id}_${peer.id}`;
       const colRef = collection(callRef, `calleeCandidates_${pairKey}`);
@@ -252,34 +270,21 @@ const acceptCall = useCallback(
   async (id: string, members: Member[]) => {
     await startLocalStream();
 
-// if (localVideoRef.current && localStreamRef.current) {
-//   localVideoRef.current.srcObject = localStreamRef.current;
-//   localVideoRef.current.muted = true;
-//   await localVideoRef.current.play().catch(() => {});
-// }
 
 
     const callRef = doc(db, "calls", id);
     callDocRef.current = callRef;
     setCallId(id);
 
-    // await updateDoc(callRef, {
-    //   status: "active",
-    //   [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true },
-    // });
+  
 
      await updateDoc(callRef, {
       status: "active",
-      [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true, name: user?.displayName },
+      [`participants.${normalize(currentuserIs?.id)}`]: { muted: true, videoOn: true, name: user?.displayName },
       [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(), // 🔑 trigger fresh offer
     });
 
-// await setDoc(callRef, {
-//   status: "active",
-//   participants: {
-//     [normalize(currentuserIs?.id)]: { muted: false, videoOn: true },
-//   },
-// }, { merge: true });
+
 
     setStatus("active");
 
@@ -294,7 +299,7 @@ const acceptCall = useCallback(
     for (const [pairKey, offer] of offersForMe) {
       const callerId = offer.from as string;
 
-      // ✅ use callerId as remote peer
+      // ✅ use callerId as remote peer getRemoteVideoRef
       const pc = createPeerConnection(pairKey, callerId, false, callRef);
 
       // subscribe to caller ICE candidates
@@ -315,7 +320,7 @@ const acceptCall = useCallback(
         new RTCSessionDescription({ type: offer.type, sdp: offer.sdp })
       ).catch(console.error);
 
-      // create answer and write it src
+      // create answer and write it src normalize
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       await updateDoc(callRef, {
@@ -404,7 +409,7 @@ useEffect(() => {
               from: currentuserIs?.id,
               to: peerId,
             },
-            [`renegotiate.${peerId}`]: deleteField(), // ✅ cleanup
+            [`renegotiate.${peerId}`]: deleteField(), // ✅ cleanup peerConnection.ontrack
           });
         }
       }

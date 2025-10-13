@@ -376,9 +376,9 @@ if(showIncomingCall){
           <DialogTitle>Audio Call {incomingCall?.status}</DialogTitle>
           <DialogDescription>
              <div className="p-4">
-      <p className="font-semibold mb-2">
+      <i className="font-semibold mb-2">
     {members.length} members..    Participants ({Object.keys(participants).length})
-      </p>
+      </i>
       <ul className="space-y-2">
         {Object.entries(participants).map(([uid, info]) => (
           <li
