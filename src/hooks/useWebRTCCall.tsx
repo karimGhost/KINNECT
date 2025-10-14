@@ -14,7 +14,7 @@ import {
   FirestoreError,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
+import { useAuth } from "./useAuth";
 type Member = any;
 
 const RTC_CONFIG: RTCConfiguration = {
@@ -29,7 +29,7 @@ export function useWebRTCCall({ currentuserIs }: { currentuserIs: { id: string; 
   const unsubRef = useRef<Array<() => void>>([]);
   const callDocRef = useRef<DocumentReference | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-
+const {user} = useAuth();
   const [isCalling, setIsCalling] = useState(false);
   const [muted, setMuted] = useState<Record<string, boolean>>({});
   const [videoOn, setVideoOn] = useState<Record<string, boolean>>({});
@@ -257,10 +257,16 @@ const acceptCall = useCallback(
     callDocRef.current = callRef;
     setCallId(id);
 
+      try {
     await updateDoc(callRef, {
       status: "active",
-      [`participants.${normalize(currentuserIs?.id)}`]: { muted: false, videoOn: true },
+          [`participants.${normalize(currentuserIs?.id)}`]: { muted: true, videoOn: true, name: user?.displayName },
+          [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(),
     });
+      } catch (err) {
+        console.warn("acceptCall updateDoc failed", err);
+      }
+
     setStatus("active");
 
     const snap = await getDoc(callRef);

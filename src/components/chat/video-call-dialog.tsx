@@ -16,6 +16,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { User } from "@/types";
 import { useVCallParticipants } from "@/hooks/useVCallParticipants";
 import { useIncomingVCalls } from "@/hooks/useIncomingVCalls";
+import { useRouter } from "next/navigation";
+
 interface Member {
   uid(uid?: any): unknown; id?: string; name?: string; avatar?: string; fullName?: string 
 }
@@ -59,10 +61,12 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
 const [incomingCall, setIncomingCall] = useState<any>();
 const [ringoff,setringoff] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+const router = useRouter();
 
   const handleClick = (index: any) => {
     setFocusedIndex(index === focusedIndex ? null : index);
   };
+
 
 
   useEffect(() => {
@@ -107,14 +111,14 @@ setringoff(true)
   }
 };
 
-  useEffect(() => {
-    if (!isOpen) {
-      // hang up when dialog closed
-      hangUp().catch(() => {});
-      setInternalCallId(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  // useEffect(() => {
+  //   if (!isOpen) {
+  //     // hang up when dialog closed
+  //     hangUp().catch(() => {});
+  //     setInternalCallId(null);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [isOpen]);
 
   // const handleStart = async () => {
   //   try {
@@ -146,6 +150,7 @@ setringoff(true)
           console.log("ddd", idToUse)
 
       setInternalCallId(idToUse);
+
 setIsVideoCallOpen(true)
 setisopen(false);
 
@@ -159,7 +164,7 @@ setisopen(false);
     setringoff(true)
     const idToUse = callerId  ;
     if (!idToUse) return;
-    await declineCall(idToUse);
+    // await declineCall(idToUse);
     setInternalCallId(null);
     setisopen(false)
   };
@@ -175,7 +180,7 @@ setisopen(false);
     if (!groupId) return;
 
     const messagesCol = collection(db, "families", groupId, "messages");
-    // find the message that matches this callId
+    // find the message that matches this callId el
     const q = query(messagesCol, where("callId", "==", callId));
 
     const snap = await getDocs(q);
@@ -196,10 +201,11 @@ setisopen(false);
 
 
 
+
   const handleEnd = async () => {
     setringoff(true)
        if(videocalling?.author?.id  !== user?.uid) {
-         await hangUp();
+       
     onOpenChange(false);
     setInternalCallId(null);
 handleDecline()
@@ -250,6 +256,7 @@ useEffect(() => {
 }, [participants]);
 
 
+
 // useEffect(() => {
 
 //   if (status === "ringing" &&  videocalling?.author?.id === user?.uid) {
@@ -269,6 +276,41 @@ useEffect(() => {
 // }, [status, ringoff, videocalling?.author?.id]);
 
   // Start a call
+
+useEffect(() => {
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (status === "active" || status === "ringing") {
+      e.preventDefault();
+      e.returnValue = "You have an ongoing Videocall. Are you sure you want to leave?";
+      return e.returnValue;
+    }
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [status]);
+
+
+
+useEffect(() => {
+  const handleRouteChange = (url: string) => {
+    if ((status === "active" || status === "ringing") && !confirm("You have an ongoing call. Leave anyway?")) {
+      throw "Abort route change";
+    }
+  };
+
+  router.events?.on("routeChangeStart", handleRouteChange);
+  return () => {
+    router.events?.off("routeChangeStart", handleRouteChange);
+  };
+}, [status]);
+
+
+
+
 useEffect(() => {
   let ring: HTMLAudioElement | null = null;
 setringoff(false);
@@ -294,7 +336,7 @@ setRingtone(null)
 
   useEffect(() => {
 
-    if( videocalling?.author?.id  === user?.uid && !internalCallId && status !== "ringing"){
+    if( videocalling?.author?.id  === user?.uid && !internalCallId && status !== "ringing" || "active"){
 handleEnd();
 
 setIsVideoCallOpen(true)
@@ -370,7 +412,7 @@ const handleStart = async () => {
     const id = await startCall(members);
     setInternalCallId(id);
     console.log("started", id)
-    // post call id to group chat so others can join 
+    // post call id to group chat so others can join videocalling
     await postCallMessage(id);
     console.log("Call started with id:", id);
   } catch (err) {
@@ -389,6 +431,8 @@ console.log("members",  memberId , user?.uid)
 },[members])
 
 
+
+
 if (focusedIndex !== null) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-black">
@@ -402,7 +446,16 @@ if (focusedIndex !== null) {
       </div>
     );
   }
-if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isopen  ){
+if (!user || !videocalling  ) return null;
+
+if(isOpen){
+
+}else{
+return;
+}
+
+if (videocalling.ended && videocalling.author?.id !== user.uid ) {
+   
 
   return(
 
@@ -427,7 +480,7 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
       setIsVideoCallOpen(false); 
       // <-- your custom cleanup function
     }
-    onOpenChange(open); // still update state so dialog closes
+    onOpenChange(open); // still update state so dialog closes on going call
   }}
 >
       <DialogContent className="max-w-6xl h-[80vh] flex flex-col p-0 [&_button.absolute.right-4.top-4]:hidden"
@@ -468,6 +521,8 @@ if( (videocalling?.ended)  && (videocalling?.author?.id  !== user?.uid) && isope
 const memberId = member.id ?? member.uid;
   const isCurrentUser = memberId === user?.uid;
 
+
+  
   const remoteRef = getRemoteVideoRef(memberId);
 
   return (

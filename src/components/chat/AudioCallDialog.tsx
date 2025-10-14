@@ -53,9 +53,7 @@ const [ringoff,setringoff] = useState(false);
 
 const router = useRouter()
 
-useEffect(()=>{
-console.log("audiocaller", audiocaller)
-},[audiocaller])
+
 
 useIncomingCalls(currentuserIs.id, (callId: any, callData: {ended:any, status: any; caller: any; members: any }) => {
   setIncomingCall({
@@ -193,7 +191,7 @@ useEffect(() => {
     const timer = setTimeout(() => {
       handlehungup();
       setonlyActive(true);
-    }, 5 * 60 * 1000); // 5 minutes in ms
+    }, 5 * 60 * 1200); // 5 minutes in ms
 
     return () => clearTimeout(timer);
   }
@@ -287,6 +285,24 @@ useEffect(() => {
 }, [incomingCall?.status,audiocaller,ringoff, audiocaller?.author?.id, user?.uid]);
 
 
+
+
+useEffect(() => {
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (status === "active" || status === "ringing") {
+      e.preventDefault();
+      e.returnValue = "You have an ongoing call. Are you sure you want to leave?";
+      return e.returnValue;
+    }
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [status]);
+
   const handleStart = async () => {
     const id = await startCall(members)
 
@@ -317,17 +333,7 @@ const handleAccept = async () => {
     console.error("Error during acceptCall:", error);
   }
 };
-if(participants && onlyActive){
 
-  return(
-         <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
-              <p className="text-xl">{audiocaller?.author?.name} Opps ended the call, Looks Like you are the only one on call for long...</p>
-              <div className="flex gap-4">
-            <Button onClick={() => setonlyActive(false)}>exit</Button>
-              </div>
-            </div>
-      )
-}
 
 
 
@@ -339,10 +345,7 @@ const showIncomingCall =
     incomingCall?.status === "ringing" &&
      isopen;
 
-useEffect(() =>{
-console.log("incomingCall",     incomingCall?.from 
-)
-},[user])
+
 if(showIncomingCall){
   return(
       <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
@@ -356,7 +359,17 @@ if(showIncomingCall){
   )
 }
    
+if(participants && onlyActive){
 
+  return(
+         <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
+              <p className="text-xl">{audiocaller?.author?.name} Opps ended the call, Looks Like you are the only one on call for long...</p>
+              <div className="flex gap-4">
+            <Button onClick={() => setonlyActive(false)}>exit</Button>
+              </div>
+            </div>
+      )
+}
 
 
   return (
