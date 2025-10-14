@@ -42,20 +42,31 @@ const [ID, setId] = useState<any>()
   // Normalize ID helper
   const normalize = (id: any) => (id === undefined || id === null ? String(id) : String(id));
 
-  const getRemoteVideoRef = useCallback((peerId: string) => {
-    const pid = normalize(peerId);
-    return (el: HTMLVideoElement | null) => {
-      remoteVideoElems.current[pid] = el;
-      const s = inboundStreams.current[pid];
-      if (el && s) {
-        el.srcObject = s;
+ const getRemoteVideoRef = useCallback((peerId: string) => {
+  const pid = normalize(peerId);
+  return (el: HTMLVideoElement | null) => {
+    // store ref (null allowed when unmounting)
+    remoteVideoElems.current[pid] = el;
+
+    // Try to attach any already-received inbound stream
+    const s = inboundStreams.current[pid];
+    if (el && s) {
+      try {
+        if (el.srcObject !== s) el.srcObject = s;
+        // try play but ignore errors (autoplay policy)
         el.play().catch(() => {});
+      } catch (err) {
+        console.warn("attach remote video failed", err);
       }
-    };
-  }, []);
+    }
+  };
+}, []);
+
 
   const startLocalStream = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
+
+  
     const stream = await navigator.mediaDevices?.getUserMedia({ audio: true, video: true });
     stream.getVideoTracks().forEach(track => track.enabled = true);
 stream.getAudioTracks().forEach(track => track.enabled = true);
@@ -70,63 +81,144 @@ stream.getAudioTracks().forEach(track => track.enabled = true);
     setMuted((p) => ({ ...p, [normalize(currentuserIs?.id)]: false }));
     return stream;
   }, [currentuserIs?.id]);
+const candidateQueue = useRef<Record<string, RTCIceCandidateInit[]>>({});
 
-  const createPeerConnection = useCallback(
-    (pairKey: string, remotePeerId: string, isCaller: boolean, callRef: DocumentReference | null) => {
-      const pc = new RTCPeerConnection(RTC_CONFIG);
+const createPeerConnection = useCallback(
+  async (
+    pairKey: string,
+    remotePeerId: string,
+    isCaller: boolean,
+    callRef: DocumentReference | null
+  ) => {
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+    const pid = normalize(remotePeerId);
 
-      // add local tracks (if available) RTCPeerConnection remoteVideoElems
-      const localStream = localStreamRef.current;
-      if (localStream) {
-        for (const track of localStream.getTracks()) {
-          pc.addTrack(track, localStream);
+    // debug handlers
+    pc.onconnectionstatechange = () => {
+      // optional: more detailed logging if you need it
+      // console.log("pc.connectionState", pid, pc.connectionState);
+    };
+    pc.oniceconnectionstatechange = () => {
+      // console.log("pc.iceConnectionState", pid, pc.iceConnectionState);
+    };
+
+    // ensure local stream exists (fallback)
+    let localStream = localStreamRef.current;
+    if (!localStream) {
+      console.warn("No local stream yet - attempting fallback getUserMedia");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localStreamRef.current = stream;
+        localStream = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
         }
+      } catch (err) {
+        console.error("getUserMedia fallback failed:", err);
+      }
+    }
+
+    // add local tracks (if available)
+    if (localStream) {
+      for (const track of localStream.getTracks()) {
+        pc.addTrack(track, localStream);
+      }
+    } else {
+      // still continue — remote could be audio-only or we can handle later
+      console.warn("Still no local stream — pc created without local tracks");
+    }
+
+    // when remote track arrives — compose stream and attach (retry if DOM not yet mounted)
+    pc.ontrack = (ev) => {
+      const remoteStream = inboundStreams.current[pid] ?? new MediaStream();
+
+      if (ev.streams && ev.streams.length > 0) {
+        inboundStreams.current[pid] = ev.streams[0];
+      } else if (ev.track) {
+        remoteStream.addTrack(ev.track);
+        inboundStreams.current[pid] = remoteStream;
       }
 
-    pc.ontrack = (ev) => {
-  const pid = normalize(remotePeerId);
-  const remoteStream = inboundStreams.current[pid] ?? new MediaStream();
-
-  if (ev.streams && ev.streams.length > 0) {
-    inboundStreams.current[pid] = ev.streams[0];
-  } else if (ev.track) {
-    remoteStream.addTrack(ev.track);
-    inboundStreams.current[pid] = remoteStream;
-  }
-
-  // Retry attaching every 250ms until element exists
-  const tryAttach = () => {
-    const el = remoteVideoElems.current[pid];
-    const stream = inboundStreams.current[pid];
-    if (el && stream) {
-      el.srcObject = stream;
-      el.play().catch(() => {});
-    } else {
-      setTimeout(tryAttach, 250);
-    }
-  };
-  tryAttach();
-
-
-    
-      };
-
-      pc.onicecandidate = async (ev) => {
-        if (!ev.candidate || !callRef) return;
-        try {
-          const cand = ev.candidate.toJSON();
-          const colName = isCaller ? `callerCandidates_${pairKey}` : `calleeCandidates_${pairKey}`;
-          await addDoc(collection(callRef, colName), cand);
-        } catch (err) {
-          console.warn("add candidate failed", err);
+      // attach safely with retries (stops when element available)
+      let tries = 0;
+      const tryAttach = () => {
+        tries++;
+        const el = remoteVideoElems.current[pid];
+        const s = inboundStreams.current[pid];
+        if (el && s) {
+          try {
+            if (el.srcObject !== s) el.srcObject = s;
+            el.play().catch(() => {});
+          } catch (err) {
+            console.warn("attach remote stream error:", err);
+          }
+          return;
+        }
+        if (tries < 20) {
+          // retry up to ~5s (20 * 250ms)
+          setTimeout(tryAttach, 250);
+        } else {
+          // give up gracefully
+          console.warn("give up attaching remote stream for", pid);
         }
       };
+      tryAttach();
+    };
 
-      pcsRef.current[normalize(remotePeerId)] = pc;
-      return pc;
-    },
-    []
-  );
+    // onicecandidate: write to Firestore
+    pc.onicecandidate = async (ev) => {
+      if (!ev.candidate || !callRef) return;
+      try {
+        const cand = ev.candidate.toJSON();
+        const colName = isCaller ? `callerCandidates_${pairKey}` : `calleeCandidates_${pairKey}`;
+        await addDoc(collection(callRef, colName), cand);
+      } catch (err) {
+        console.warn("add candidate failed", err);
+      }
+    };
+
+    // store pc
+    pcsRef.current[pid] = pc;
+    // ensure a queue entry exists
+    candidateQueue.current[pid] = candidateQueue.current[pid] || [];
+
+    return pc;
+  },
+  []
+);
+const addRemoteCandidateSafely = useCallback((peerId: string, candInit: RTCIceCandidateInit) => {
+  const pid = normalize(peerId);
+  const pc = pcsRef.current[pid];
+  if (pc) {
+    // if remote description is set, add immediately
+    if (pc.remoteDescription && pc.remoteDescription.type) {
+      pc.addIceCandidate(new RTCIceCandidate(candInit)).catch((err) => {
+        console.warn("addIceCandidate failed:", err);
+      });
+    } else {
+      // queue until remoteDescription is set
+      candidateQueue.current[pid] = candidateQueue.current[pid] || [];
+      candidateQueue.current[pid].push(candInit);
+    }
+  } else {
+    // no pc yet: queue anyway (createPeerConnection should flush later)
+    candidateQueue.current[pid] = candidateQueue.current[pid] || [];
+    candidateQueue.current[pid].push(candInit);
+  }
+}, []);
+
+const flushCandidateQueue = (peerId: string) => {
+  const pid = normalize(peerId);
+  const pc = pcsRef.current[pid];
+  const q = candidateQueue.current[pid] || [];
+  if (pc && q.length) {
+    q.forEach((candInit) => {
+      pc.addIceCandidate(new RTCIceCandidate(candInit)).catch(console.error);
+    });
+    candidateQueue.current[pid] = [];
+  }
+};
+
 
 //   useEffect(() => {
 //   Object.entries(remoteVideoElems.current).forEach(([peerId, el]) => {
@@ -163,25 +255,37 @@ if (!localStreamRef.current) {
     setIsCalling(false);
     setCallId(null);
   }, []);
-
-  const startCall = useCallback(
+const startCall = useCallback(
   async (members: Member[]) => {
- const id = crypto.randomUUID();
-           setCallId(id);
-setId(id)
-    await startLocalStream();
+    const id = crypto.randomUUID();
+    setCallId(id);
+    setId(id);
+
+    // ensure local stream
+    if (!localStreamRef.current) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localStreamRef.current = stream;
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      } catch (err) {
+        console.error("Failed to get local media:", err);
+        return;
+      }
+    }
 
     const callRef = doc(db, "calls", id);
     callDocRef.current = callRef;
-
     const offers: Record<string, any> = {};
 
     // create offers for each other participant
     for (const peer of members.filter((m) => String(m.id) !== String(currentuserIs?.id))) {
       const pairKey = `${currentuserIs?.id}_${peer.id}`;
 
-      // ✅ create peer connection with remote peerId 🔄 Renegotiation requested by LbgXIt9xlTfZGLDGLZXcsBnOmF33
-      const pc = createPeerConnection(pairKey, peer.id, true, callRef);
+      // await the pc so fallback getUserMedia inside createPeerConnection can run
+      const pc = await createPeerConnection(pairKey, peer.id, true, callRef);
+
+      // flush any queued remote candidates for safety (unlikely for caller)
+      flushCandidateQueue(peer.id);
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -199,10 +303,9 @@ setId(id)
       status: "ringing",
       caller: { id: currentuserIs?.id, name: currentuserIs?.name },
       participants: {
-        [normalize(currentuserIs?.id)]: { muted: false, videoOn: true,name: currentuserIs?.name},
+        [normalize(currentuserIs?.id)]: { muted: false, videoOn: true, name: currentuserIs?.name },
       },
-        members: members.map((m) => normalize(m.id ?? m.uid)), // 🔥 add this peerConnection
-
+      members: members.map((m) => normalize(m.id ?? m.uid)),
       offers,
       createdAt: Date.now(),
     });
@@ -219,20 +322,19 @@ setId(id)
       }
       if (data.answers) {
         Object.entries<any>(data.answers).forEach(([pairKey, answer]) => {
-          // pairKey format: callerId_peerId
           const targetPeerId = pairKey.split("_")[1];
           const pc = pcsRef.current[normalize(targetPeerId)];
           if (pc && answer && !pc.currentRemoteDescription) {
-            pc.setRemoteDescription(
-              new RTCSessionDescription({ type: answer.type, sdp: answer.sdp })
-            ).catch(console.error);
+            pc.setRemoteDescription(new RTCSessionDescription({ type: answer.type, sdp: answer.sdp }))
+              .then(() => flushCandidateQueue(targetPeerId))
+              .catch(console.error);
           }
         });
       }
     });
     unsubRef.current.push(unsubCall);
 
-    // listen for calleeCandidates for each pairKey (callee writes these) createPeerConnection
+    // listen for calleeCandidates for each pairKey (callee writes these)
     for (const peer of members.filter((m) => String(m.id) !== String(currentuserIs?.id))) {
       const pairKey = `${currentuserIs?.id}_${peer.id}`;
       const colRef = collection(callRef, `calleeCandidates_${pairKey}`);
@@ -240,8 +342,7 @@ setId(id)
         snap.docChanges().forEach((change) => {
           if (change.type === "added") {
             const cand = change.doc.data();
-            const pc = pcsRef.current[normalize(peer.id)];
-            if (pc) pc.addIceCandidate(new RTCIceCandidate(cand)).catch(console.error);
+            addRemoteCandidateSafely(peer.id, cand);
           }
         });
       });
@@ -252,8 +353,11 @@ setId(id)
     setStatus("ringing");
     return id;
   },
-  [createPeerConnection, currentuserIs?.id, currentuserIs?.name, startLocalStream]
+  [createPeerConnection, currentuserIs?.id, currentuserIs?.name]
 );
+
+
+
 
 useEffect(() => {
   if (localVideoRef.current && localStreamRef.current) {
@@ -265,26 +369,29 @@ useEffect(() => {
       .catch((err) => console.warn("Local video play error:", err));
   }
 }, [localVideoRef.current, localStreamRef.current]);
-
 const acceptCall = useCallback(
   async (id: string, members: Member[]) => {
-    await startLocalStream();
-
-
+    // ensure local stream first
+    if (!localStreamRef.current) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localStreamRef.current = stream;
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      } catch (err) {
+        console.error("Failed to get local media:", err);
+        return;
+      }
+    }
 
     const callRef = doc(db, "calls", id);
     callDocRef.current = callRef;
     setCallId(id);
 
-  
-
-     await updateDoc(callRef, {
+    await updateDoc(callRef, {
       status: "active",
       [`participants.${normalize(currentuserIs?.id)}`]: { muted: true, videoOn: true, name: user?.displayName },
-      [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(), // 🔑 trigger fresh offer
+      [`renegotiate.${normalize(currentuserIs?.id)}`]: Date.now(),
     });
-
-
 
     setStatus("active");
 
@@ -292,35 +399,34 @@ const acceptCall = useCallback(
     const data = snap.data() || {};
     const offers = data.offers || {};
 
-    const offersForMe = Object.entries<any>(offers).filter(
-      ([, offer]) => offer && offer.to === currentuserIs?.id
-    );
+    const offersForMe = Object.entries<any>(offers).filter(([, offer]) => offer && offer.to === currentuserIs?.id);
 
     for (const [pairKey, offer] of offersForMe) {
       const callerId = offer.from as string;
 
-      // ✅ use callerId as remote peer getRemoteVideoRef
-      const pc = createPeerConnection(pairKey, callerId, false, callRef);
+      // create/await pc
+      const pc = await createPeerConnection(pairKey, callerId, false, callRef);
 
-      // subscribe to caller ICE candidates
+      // listen for caller ICE candidates (caller wrote these)
       const callerCandidatesCol = collection(callRef, `callerCandidates_${pairKey}`);
       const unsubCallerCand = onSnapshot(callerCandidatesCol, (snap2) => {
         snap2.docChanges().forEach((change) => {
           if (change.type === "added") {
             const c = change.doc.data();
-            const pcInner = pcsRef.current[normalize(callerId)];
-            if (pcInner) pcInner.addIceCandidate(new RTCIceCandidate(c)).catch(console.error);
+            addRemoteCandidateSafely(callerId, c);
           }
         });
       });
       unsubRef.current.push(unsubCallerCand);
 
       // set remote offer
-      await pc.setRemoteDescription(
-        new RTCSessionDescription({ type: offer.type, sdp: offer.sdp })
-      ).catch(console.error);
+      await pc.setRemoteDescription(new RTCSessionDescription({ type: offer.type, sdp: offer.sdp }))
+        .catch(console.error);
 
-      // create answer and write it src normalize
+      // flush any queued candidates now remoteDescription exists
+      flushCandidateQueue(callerId);
+
+      // create answer and write it
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       await updateDoc(callRef, {
@@ -333,15 +439,14 @@ const acceptCall = useCallback(
         snap3.docChanges().forEach((change) => {
           if (change.type === "added") {
             const c = change.doc.data();
-            const pcInner = pcsRef.current[normalize(callerId)];
-            if (pcInner) pcInner.addIceCandidate(new RTCIceCandidate(c)).catch(console.error);
+            addRemoteCandidateSafely(callerId, c);
           }
         });
       });
       unsubRef.current.push(unsubCallee);
     }
 
-    // listen to call doc live updates
+    // listen to call doc live updates (answers, status, etc.)
     const unsubDoc = onSnapshot(callRef, (snapDoc) => {
       const d = snapDoc.data() || {};
       if (d.status) setStatus(d.status);
@@ -356,9 +461,9 @@ const acceptCall = useCallback(
           const callerId = pairKey.split("_")[0];
           const pc = pcsRef.current[normalize(callerId)];
           if (pc && answer && !pc.currentRemoteDescription) {
-            pc.setRemoteDescription(
-              new RTCSessionDescription({ type: answer.type, sdp: answer.sdp })
-            ).catch(console.error);
+            pc.setRemoteDescription(new RTCSessionDescription({ type: answer.type, sdp: answer.sdp }))
+              .then(() => flushCandidateQueue(callerId))
+              .catch(console.error);
           }
         });
       }
@@ -367,10 +472,8 @@ const acceptCall = useCallback(
 
     setIsCalling(true);
   },
-  [createPeerConnection, currentuserIs?.id, startLocalStream]
+  [createPeerConnection, currentuserIs?.id]
 );
-
-
 
 
 
