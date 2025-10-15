@@ -28,7 +28,8 @@ const {user} = useAuth();
         if (snap.exists()) {
           const data = snap.data();
           setFamilyData(data);
-         setFamilyName(data.familyName)
+         setFamilyName(data?.familyName);
+         setFamilyAvatar(data?.familyAvatar || "")
           console.log("famd", data)
         }
       } catch (error) {

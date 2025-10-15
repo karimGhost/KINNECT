@@ -5,7 +5,6 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#ffffff",
   "theme_color": "#0f0f0f",
   "description": "Kinnect is a private space for your family to share stories, preserve history, and find lost connections. Build your legacy together.",

@@ -1,10 +1,9 @@
+
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { headers } from "next/headers";
-
-
-
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 function getUserLang() {
   if (typeof navigator !== "undefined") {
     return (navigator.language || "en").split("-")[0]; // e.g. "en", "sw"
@@ -24,6 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
+ 
  const lang =
     typeof window !== "undefined" ? getUserLang() : "en";
 
@@ -53,6 +53,8 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
+                <ServiceWorkerRegister />
+
         {children}
         <Toaster />
       </body>

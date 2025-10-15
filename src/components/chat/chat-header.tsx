@@ -1,7 +1,7 @@
 'use client'
 import type { Group, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Video, Phone, MapPin, MoreVertical } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import VideoCallDialog from './video-call-dialog';
@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { SidebarInset, SidebarTrigger } from '../ui/sidebar';
 import AudioCallDialog from './AudioCallDialog';
 import { useWebRTCCall } from '@/hooks/useWebRTCCall';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogTitle } from '@radix-ui/react-dialog';
 import { DialogHeader } from '../ui/dialog';
@@ -61,6 +61,7 @@ const currentuserIs = {
 
         const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
 
+  const [familyAvatar, setFamilyAvatar] = useState("");
 
 
 
@@ -92,6 +93,28 @@ const normalizeMembersForCall = (members: User[]) =>
     console.error("Failed to post call message:", err);
   }
 };
+
+const familyId = userData?.familyId;
+
+useEffect(() => {
+    const fetchFamily = async () => {
+      try {
+        const ref = doc(db, "families", familyId);
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+          const data = snap.data();
+        
+         setFamilyAvatar(data?.familyAvatar || "")
+          console.log("famd", data)
+        }
+      } catch (error) {
+        console.error("Error fetching family:", error);
+      }
+    };
+
+    if (familyId) fetchFamily();
+  }, [familyId]);
 
  
   const handleAccept = async (id: string | null) => {
@@ -194,6 +217,10 @@ const normalizeMembersForCall = (members: User[]) =>
   //     </Dialog>
   //   )
   // }
+
+  useEffect(()=>{
+console.log("members", members)
+  }, [members])
   return (
     <>
 
@@ -202,6 +229,8 @@ const normalizeMembersForCall = (members: User[]) =>
                             <SidebarTrigger />
 
           <Avatar>
+            <AvatarImage src={familyAvatar} />
+
             <AvatarFallback className="bg-secondary text-lg">{familyName.slice(0, 1).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
@@ -251,11 +280,12 @@ const normalizeMembersForCall = (members: User[]) =>
                 className="flex items-center space-x-3 rounded-xl border p-3 hover:bg-accent cursor-pointer"
               >
                 {/* Avatar */}
-                <img
-                  src={member?.photoURL ?? "/default-avatar.png"}
-                  alt={member?.fullName ?? "User"}
-                  className="h-12 w-12 rounded-full object-cover"
-                />
+             
+                  <Avatar>
+            <AvatarImage src={member?.avatarUrl} />
+
+            <AvatarFallback className="bg-secondary text-lg">{member?.fullName.slice(0, 1).toUpperCase()}</AvatarFallback>
+          </Avatar>
 
                 {/* Info */}
                 <div className="flex flex-col">

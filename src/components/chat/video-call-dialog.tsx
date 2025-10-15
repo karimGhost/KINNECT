@@ -6,7 +6,7 @@ import type { Currentuser } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Mic, Video, PhoneOff } from "lucide-react";
+import { Mic, Video, PhoneOff, PhoneIncoming , PhoneCall} from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { useWebRTCCall } from "@/hooks/useWebRTCCall";
@@ -336,10 +336,10 @@ setRingtone(null)
 
   useEffect(() => {
 
-    if( videocalling?.author?.id  === user?.uid && !internalCallId && status !== "ringing" || "active"){
+    if( (videocalling?.author?.id  === user?.uid) && (!internalCallId) && (status !== "ringing" || status !== "active")){
 handleEnd();
 
-setIsVideoCallOpen(true)
+setIsVideoCallOpen(false)
 setisopen(false);
 
     } 
@@ -446,7 +446,7 @@ if (focusedIndex !== null) {
       </div>
     );
   }
-if (!user || !videocalling  ) return null;
+if (!user || videocalling?.ended  === false ) return null;
 
 if(isOpen){
 
@@ -454,7 +454,7 @@ if(isOpen){
 return;
 }
 
-if (videocalling.ended && videocalling.author?.id !== user.uid ) {
+if (videocalling?.ended && videocalling?.author?.id !== user?.uid ) {
    
 
   return(
@@ -498,7 +498,9 @@ if (videocalling.ended && videocalling.author?.id !== user.uid ) {
           <div className="flex items-center gap-2">
             {!internalCallId && status  !== "ringing" && (
 
-              <Button onClick={handleStart} variant="secondary">Start Call</Button>
+              <Button onClick={handleStart} className="bg-green-600 hover:bg-secondary"  variant="secondary">
+                <PhoneCall className="h-16 w-16 text-green-500 animate-pulse " />
+                Start Call</Button>
             )}
            
             {internalCallId && (
