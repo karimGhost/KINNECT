@@ -8,7 +8,7 @@
   "scope": "/",
   "id": "/",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen"],
+  "display_override": ["standalone", "fullscreen","window-controls-overlay"],
   "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#0f0f0f",
