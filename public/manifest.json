@@ -1,92 +1,52 @@
 {
+  "name": "Kinnect",
+  "short_name": "Kinnect",
   "description": "Kinnect is a private space for your family to share stories, preserve history, and find lost connections. Build your legacy together.",
+  "lang": "en",
   "dir": "ltr",
-  "display": "standalone",
-  "display_override": [
-  "standalone",
-  "fullscreen"
-],
-  "name": "kinnect",
-  "orientation": "any",
-  "scope": "/",
-  "id":"/",
-  "short_name": "kinnect",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#0f0f0f",
+  "categories": [
+    "social",
+    "lifestyle",
+    "family",
+    "communication"
+  ],
   "icons": [
-      {
+    {
       "src": "/icons/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
-      {
+    {
       "src": "/icons/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "https://kinnect-eight.vercel.app/favicon.ico",
-      "type": "image/x-icon",
-      "sizes": "16x16",
-      "isSquare": true,
-      "isPng": false,
-      "isWebp": false,
-      "isJpg": false,
-      "width": 16,
-      "is512x512": false,
-      "is256x256": false,
-      "is192x192": false
-    },
-    {
-      "src": "https://kinnect-eight.vercel.app/favicon.ico",
-      "type": "image/x-icon",
-      "isSquare": false,
-      "isPng": false,
-      "isWebp": false,
-      "isJpg": false,
-      "width": 0,
-      "is512x512": false,
-      "is256x256": false,
-      "is192x192": false
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [
-  {
-    "src": "/screenshots/mobile1.png",
-    "sizes": "1080x1920",
-    "type": "image/png",
-    "form_factor": "narrow",
-    "label": "Home screen on mobile"
-  },
-  {
-    "src": "/screenshots/desktop1.png",
-    "sizes": "1920x1080",
-    "type": "image/png",
-    "form_factor": "wide",
-    "label": "Desktop app view"
-  }
-],
-  "lang": "en",
-  "prefer_related_applications": false,
-  "categories": [
-    "books",
-    "business",
-    "education",
-    "entertainment",
-    "finance",
-    "fitness",
-    "food",
-    "health",
-    "kids",
-    "lifestyle",
-    "magazines",
-    "medical",
-    "news",
-    "personalization",
-    "photo",
-    "productivity",
-    "social",
-    "travel"
-  ]
+    {
+      "src": "/screenshots/mobile1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Kinnect mobile home screen"
+    },
+    {
+      "src": "/screenshots/desktop1.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Kinnect desktop view"
+    }
+  ],
+  "prefer_related_applications": false
 }

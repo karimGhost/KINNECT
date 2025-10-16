@@ -1,12 +1,12 @@
 // public/service-worker.js
 
-// Define your cache name
-const CACHE = "blabzio-cache-v1";
+// Define cache name
+const CACHE = "kinnect-cache-v1";
 
-// Import Workbox (used by PWABuilder & Play Store Trusted Web Activity)
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
+// Import Workbox (used by PWABuilder / TWA)
+importScripts("https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js");
 
-// Skip waiting if a new SW is installed
+// Skip waiting when a new SW version is available
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
@@ -17,8 +17,8 @@ self.addEventListener("message", (event) => {
 const urlsToCache = [
   "/",
   "/manifest.json",
-  "/icons/icon-192x192.png",
-  "/icons/icon-512x512.png"
+  "/icons/android-chrome-192x192.png",
+  "/icons/android-chrome-512x512.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -27,11 +27,11 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// ✅ Runtime caching using Workbox
-if (workbox) {
+// ✅ Use Workbox for runtime caching
+if (typeof workbox !== "undefined") {
   console.log("Workbox is loaded 🎉");
 
-  // Cache all navigation requests (your app pages)
+  // Cache navigations (app shell)
   workbox.routing.registerRoute(
     new workbox.routing.NavigationRoute(
       new workbox.strategies.NetworkFirst({
@@ -40,9 +40,9 @@ if (workbox) {
     )
   );
 
-  // Cache static assets like images, CSS, JS
+  // Cache static assets (images, css, js, fonts)
   workbox.routing.registerRoute(
-    /\.(?:png|jpg|jpeg|svg|gif|css|js|woff2)$/,
+    /\.(?:png|jpg|jpeg|svg|gif|css|js|woff2|webp)$/,
     new workbox.strategies.StaleWhileRevalidate({
       cacheName: `${CACHE}-assets`,
     })
@@ -51,7 +51,7 @@ if (workbox) {
   console.log("Workbox didn't load 😢");
 }
 
-// ✅ Clean old caches on activate
+// ✅ Clean old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
