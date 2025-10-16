@@ -6,12 +6,11 @@
   "standalone",
   "fullscreen"
 ],
-
-  "name": "kinnect-eight.vercel",
+  "name": "kinnect",
   "orientation": "any",
   "scope": "/",
   "id":"/",
-  "short_name": "kinnect-eight.vercel",
+  "short_name": "kinnect",
   "start_url": "/",
   "background_color": "#ffffff",
   "theme_color": "#0f0f0f",
@@ -52,6 +51,22 @@
       "is192x192": false
     }
   ],
+  "screenshots": [
+  {
+    "src": "/screenshots/mobile1.png",
+    "sizes": "1080x1920",
+    "type": "image/png",
+    "form_factor": "narrow",
+    "label": "Home screen on mobile"
+  },
+  {
+    "src": "/screenshots/desktop1.png",
+    "sizes": "1920x1080",
+    "type": "image/png",
+    "form_factor": "wide",
+    "label": "Desktop app view"
+  }
+],
   "lang": "en",
   "prefer_related_applications": false,
   "categories": [
