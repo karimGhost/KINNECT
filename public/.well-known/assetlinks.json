@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.kinnect_eight.twa",
+      "sha256_cert_fingerprints": [
+        "77:86:34:25:B0:63:77:25:79:BB:10:F2:D3:76:D8:B7:5B:E9:4C:EE:7F:2B:62:7F:9B:D6:B0:F7:AD:88:74:6F"
+      ]
+    }
+  }
+]
