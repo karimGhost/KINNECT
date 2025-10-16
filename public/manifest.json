@@ -2,6 +2,11 @@
   "description": "Kinnect is a private space for your family to share stories, preserve history, and find lost connections. Build your legacy together.",
   "dir": "ltr",
   "display": "standalone",
+  "display_override": [
+  "standalone",
+  "fullscreen"
+],
+
   "name": "kinnect-eight.vercel",
   "orientation": "any",
   "scope": "/",
