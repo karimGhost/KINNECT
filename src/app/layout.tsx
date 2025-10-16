@@ -44,6 +44,21 @@ export default function RootLayout({
           <html lang={lang} className="dark">
 
       <head>
+<script
+  dangerouslySetInnerHTML={{
+    __html: `
+      if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/pwabuilder-sw.js')
+            .then(() => console.log('✅ Service Worker registered successfully'))
+            .catch(err => console.error('❌ Service Worker registration failed:', err));
+        });
+      } else {
+        console.log('Service Worker not registered (development mode)');
+      }
+    `,
+  }}
+/>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
