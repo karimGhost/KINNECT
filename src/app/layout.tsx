@@ -11,11 +11,14 @@ function getUserLang() {
   return "en"; // fallback for server
 }
 
-export const metadata: Metadata = {
-  title: "Kinnect",
-  description: "Rediscover Your Roots, Reconnect Your Family.",
-};
 
+export const metadata: Metadata = {
+  title: 'Kinnect',
+  description: "Rediscover Your Roots, Reconnect Your Family.",
+  metadataBase: new URL("https://kinnect-eight.vercel.app"),
+ 
+  manifest: "/manifest.json",
+};
 
 export default function RootLayout({
   children,
