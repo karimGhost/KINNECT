@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "app.vercel.kinnect_eight.twa",
-        "sha256_cert_fingerprints": ["C5:28:0D:DD:90:98:3F:E2:75:80:18:C5:86:CD:8B:DE:31:ED:59:A2:C6:0C:32:DB:49:70:51:67:22:92:02:A6"]
+        "sha256_cert_fingerprints": ["91:1A:23:52:E0:63:7B:29:78:D9:2D:22:9A:27:0F:26:82:99:EE:9A:B9:B8:E7:86:90:05:5C:12:AE:0C:C2:2F"]
       }
     }]
