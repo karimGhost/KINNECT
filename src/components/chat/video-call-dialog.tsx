@@ -31,7 +31,7 @@ interface VideoCallDialogProps {
   callId?: string ;
   members: User[]; 
   groupId: string; // <-- NEW: id of the group / chat where we'll post the call invite
-  callerId: string;
+  callerId: any;
   setIsVideoCallOpen: any;
   videocalling: any;
 }
@@ -55,7 +55,7 @@ export default function VideoCallDialog({videocalling, setIsVideoCallOpen, curre
     ID,
     callId: hookCallId,
   } = useWebRTCCall({ currentuserIs });
-
+ 
   const {user, userData} = useAuth();
   const [internalCallId, setInternalCallId] = useState<string | null>(callId ?? hookCallId ?? null);
 const [incomingCall, setIncomingCall] = useState<any>();
@@ -336,7 +336,13 @@ setRingtone(null)
 
   useEffect(() => {
 
-    if( (videocalling?.author?.id  === user?.uid) && (!internalCallId) && (status !== "ringing" || status !== "active")){
+if (
+
+  videocalling?.author?.id === user?.uid && videocalling?.ended &&
+  !internalCallId &&
+  status !== "ringing" &&
+  status !== "active"
+) {
 handleEnd();
 
 setIsVideoCallOpen(false)
@@ -345,7 +351,7 @@ setisopen(false);
     } 
 
 
-}, [videocalling, status, internalCallId])
+}, [videocalling, status, internalCallId]);
 
   // responsive grid helper
 const getGridCols = (count: number) => {
@@ -446,15 +452,15 @@ if (focusedIndex !== null) {
       </div>
     );
   }
-if (!user || videocalling?.ended  === false ) return null;
+// if (!user || videocalling?.ended  === false ) return null;
 
-if(isOpen){
+// if(isopen){
 
-}else{
-return;
-}
+// }else{
+// return;
+// }
 
-if (videocalling?.ended && videocalling?.author?.id !== user?.uid ) {
+if ( videocalling && videocalling?.author?.id !== user?.uid && isopen) {
    
 
   return(

@@ -16,6 +16,7 @@ import { db } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogTitle } from '@radix-ui/react-dialog';
 import { DialogHeader } from '../ui/dialog';
 import { useRouter } from 'next/navigation';
+import CallsHook from '../Calls/CallsHook';
 interface ChatHeaderProps {
   group: Group;
     onOpenChange: (open: boolean) => void;
@@ -316,40 +317,8 @@ console.log("members", members)
              </div>
            )} */}
 
+<CallsHook isGlobal={false} setIsAudioCallOpen={setIsAudioCallOpen} setIsVideoCallOpen={setIsVideoCallOpen} isAudioCallOpen={isAudioCallOpen}  isVideoCallOpen={isVideoCallOpen}/>
 
-<VideoCallDialog
- callerId={videoCall?.callId}
- videocalling={videoCall}
-  isOpen={isVideoCallOpen}
-  onOpenChange={setIsVideoCallOpen}
-  members={approvedMembers}        // array of {id,name,avatar,fullName}
-  groupId={userData?.familyId}  
-  setIsVideoCallOpen={setIsVideoCallOpen}
-currentuserIs={{
-        id: user?.uid,
-        name: userData?.fullName,
-        avatar: userData?.avatarUrl,
-        familyId: userData?.familyId,
-        isOnline: userData?.isActive
-      }} />
-
-
-         <AudioCallDialog
-          callerId={audiocall?.callId}
-audiocaller={audiocall}
-        isOpen={isAudioCallOpen}
-        onOpenChange={setIsAudioCallOpen}
-        members={approvedMembers}
-        groupId={userData?.familyId}
-        
-        currentuserIs={{
-        id: user?.uid,
-        name: userData?.fullName,
-        avatar: userData?.avatarUrl,
-        familyId: userData?.familyId,
-        isOnline: userData?.isActive
-      }}
-      />
  <LocationDialog
       isOpen={isLocationOpen}
       onOpenChange={setIsLocationOpen}

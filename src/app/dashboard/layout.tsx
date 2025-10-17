@@ -28,6 +28,7 @@ import 'leaflet-minimap/dist/Control.MiniMap.min.css';
 // import { useRouter } from "next/navigation";
 import SidebarLink from "@/components/SidebarLink";
 import Head from "next/head";
+import CallsHook from "@/components/Calls/CallsHook";
 export default function DashboardLayout({
   children,
 }: {
@@ -200,6 +201,7 @@ export default function DashboardLayout({
     </div>
 
     <main className="flex-1 overflow-y-auto">{children}</main>
+<CallsHook isGlobal={true} isAudioCallOpen={undefined} isVideoCallOpen={undefined} setIsAudioCallOpen={undefined} setIsVideoCallOpen={undefined}/>
   </SidebarInset>
 </SidebarProvider>
    </>
