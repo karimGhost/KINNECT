@@ -418,7 +418,9 @@ const handleStart = async () => {
     const id = await startCall(members);
     setInternalCallId(id);
     console.log("started", id)
-    // post call id to group chat so others can join videocalling
+    // post call id to group chat so others can join videocalling     Opps ended the call, Looks Like you are the only one on call for long...
+
+
     await postCallMessage(id);
     console.log("Call started with id:", id);
   } catch (err) {

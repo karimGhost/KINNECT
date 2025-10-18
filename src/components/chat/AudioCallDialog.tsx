@@ -187,7 +187,7 @@ setisopen(false);
 
 useEffect(() => {
   console.log("participants",participants )
-  if (participants && Object.keys(participants).length === 0) {
+  if (participants && isopen && Object.keys(participants).length === 0) {
     const timer = setTimeout(() => {
       handlehungup();
       setonlyActive(true);
@@ -328,7 +328,7 @@ const handleAccept = async () => {
     await acceptCall(incomingCall.id, incomingCall.members);
     console.log("acceptCall finished.", incomingCall);
 
-    decline(); // should be called now
+    decline(); // should be called now oops
   } catch (error) {
     console.error("Error during acceptCall:", error);
   }
@@ -359,7 +359,7 @@ if(showIncomingCall){
   )
 }
    
-if(participants && onlyActive){
+if(participants && onlyActive &&   incomingCall?.status === "ringing" || "active"){
 
   return(
          <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
