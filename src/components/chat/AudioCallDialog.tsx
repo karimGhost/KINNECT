@@ -359,7 +359,7 @@ if(showIncomingCall){
   )
 }
    
-if(participants && onlyActive &&   incomingCall?.status === "ringing" || "active"){
+if(participants && onlyActive &&  isOpen){
 
   return(
          <div  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white space-y-4 z-50">
