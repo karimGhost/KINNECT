@@ -80,22 +80,30 @@ if(showPost){
               readOnly
             />
           </div>
-          <div className="flex justify-around pt-2 border-t">
-            <Button variant="ghost" className="text-muted-foreground" asChild>
-              <Link href="/create-post" className="text-smLogo">
-                <ImageIcon className="h-5 w-5 mr-2 text-green-500 text-smLogo " /> Photo/Video
-    </Link>
-  </Button>
-            <Button variant="ghost" className="text-muted-foreground" asChild>
-                <Link href="/videos/record" className="text-smLogo">
+          <div  className="flex justify-around pt-2 border-t">
+            <Button  onClick={() => {
+              setShowPost(true)
+              }}  variant="ghost" className="text-muted-foreground" asChild>
+                <span>
+                                  <ImageIcon className="h-5 w-5 mr-2 text-green-500 text-smLogo " /> Photo/Video
 
-                <VideoIcon className="h-5 w-5 mr-2 text-blue-500" />  Video
-    </Link>
+                </span>
   </Button>
-            <Button variant="ghost" className="text-muted-foreground" asChild>
-              <Link href="/create-post" className="text-smLogo">
-                <Smile className="h-5 w-5 mr-2 text-yellow-500" /> Feeling/Activity
-    </Link>
+            <Button  onClick={() => {
+              setShowPost(true)
+              }} variant="ghost" className="text-muted-foreground" asChild>
+<span>
+                  <VideoIcon className="h-5 w-5 mr-2 text-blue-500" />  Video
+
+</span>
+  </Button>
+            <Button  onClick={() => {
+              setShowPost(true)
+              }} variant="ghost" className="text-muted-foreground" asChild>
+                <span>
+                                  <Smile className="h-5 w-5 mr-2 text-yellow-500" /> Feeling/Activity
+
+                </span>
   </Button>
           </div>
         </CardContent>
