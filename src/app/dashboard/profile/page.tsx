@@ -34,7 +34,9 @@ const [openMembers, setOpenMembers] = useState(false);
 
    const [ user, loading] = useAuthState(auth);
   const router = useRouter()
-  
+   useEffect(()=>{
+console.log("familyD", family)
+  },[family])
   
     useEffect(() => {
   if(!user && !loading){

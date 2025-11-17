@@ -68,7 +68,7 @@ const MemberCard = ({
         </AvatarFallback>
       </Avatar>
       <div>
-        {user?.isAdmin && <i className="text-xs text-muted">Created by</i>}
+        {user?.isAdmin && <i className="text-xs text-primary">Created by</i>}
         <p className="font-semibold">{user.fullName}</p>
         <p className="text-sm text-muted-foreground">
           {user.location.city}, {user.location.country}
@@ -90,7 +90,7 @@ const MemberCard = ({
     </div>
   </div>
 );
-// ✅ Request Card with full details
+// ✅ Request Card with full details created by
 const PendingRequestCard = ({
   user,
   familyId,

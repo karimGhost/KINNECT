@@ -2,7 +2,7 @@ import { Avatar,AvatarImage,AvatarFallback } from "./ui/avatar";
 import { User, MapPin, Mail, Phone, Edit, MessageCircle, Heart } from "lucide-react";
 import EditProfileModal from "./EditProfileModal";
 import { Button } from "./ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -11,10 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useRouter } from 'next/navigation';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getUserById } from "@/lib/data";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
+import { useFamilyMembers } from "@/hooks/useFamilyMembers";
 const PostCard = ({ post }: { post: any }) => {
   if (!post) return null;
 
@@ -48,7 +51,13 @@ const PostCard = ({ post }: { post: any }) => {
 export default function ProfilePageView({ userData, family, posts, isSelf }: any) {
   const [openEdit, setOpenEdit] = useState(false);
   const [openMembers, setOpenMembers] = useState(false);
+const router = useRouter();
+        const { members, loading } = useFamilyMembers(userData?.familyId );
 
+
+  useEffect(()=>{
+console.log("familyD", family)
+  },[family])
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto space-y-10">
@@ -123,7 +132,7 @@ export default function ProfilePageView({ userData, family, posts, isSelf }: any
         </CardContent>
       </Card>
 
-{family && family.members && family.members.length > 0 && (
+{members && members && members.length > 0 && (
   <Card>
     <CardHeader className="flex justify-between items-center">
       <div>
@@ -146,11 +155,12 @@ export default function ProfilePageView({ userData, family, posts, isSelf }: any
     </DialogHeader>
 
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 mt-4">
-    {family?.membersData?.map((member: any) => (
-  <div key={member.uid} className="flex flex-col items-center">
+    {members?.map((member: any) => (
+  <div     style={{cursor:"pointer"}}          onClick={() => router.push(`/dashboard/profile/${member.id}`) }
+ key={member.id ?? member.uid} className="flex flex-col items-center">
     <Avatar>
-      <AvatarImage src={member.avatarUrl} alt={member.fullName} />
-      <AvatarFallback>{member.fullName.charAt(0)}</AvatarFallback>
+      <AvatarImage src={member?.avatarUrl} alt={member} />
+      <AvatarFallback>{member?.fullName.slice(0, 1).toUpperCase()}</AvatarFallback>
     </Avatar>
     <p>{member.fullName}</p>
     <p className="text-xs">{member.location?.city}</p>

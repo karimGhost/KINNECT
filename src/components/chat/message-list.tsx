@@ -36,9 +36,9 @@ export default function MessageList({ messages, currentUser, onReply, containerR
     await updateDoc(ref, { reactions: newReactions })
   }
 
-  useEffect(()=>{
-console.log("messages",messages)
-  },[messages])
+//   useEffect(()=>{
+// console.log("messages",messages)
+//   },[messages])
   // Auto-scroll
   useEffect(() => {
     const container = containerRef.current
@@ -169,14 +169,14 @@ const scrollToMessage = (id: string) => {
           style={{zIndex:"99"}}
           className={cn(
 
-            "absolute bottom-20 right-4 bg-primary text-white p-3 rounded-full shadow-lg hover:bg-primary/90 transition flex items-center gap-1",
+            "sticky bottom-20 float-right bg-primary text-white p-3 rounded-full shadow-lg hover:bg-primary/90 transition flex items-center gap-1",
             newMessagePulse && "animate-bounce"
           )}
         >
           <ArrowDown className="w-5 h-5" />
-          {unreadCount > 0 && (
+        {unreadCount > 0 && (
             <span className="ml-1 text-xs font-bold bg-white text-primary rounded-full px-2 py-0.5">
-              {unreadCount}
+              {unreadCount} 
             </span>
           )}
         </button>
