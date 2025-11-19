@@ -130,10 +130,10 @@ export default function DashboardLayout({
                      <span className="flex items-center mb-1 gap-2 font-semibold">
  
             <Users  />
-<b>
-          Members <PendingList />
+<span style={{display:"flex"}}>
+        <b>Members </b>   <PendingList />
 
-</b>
+</span>
 </span>
       </SidebarLink>
     </SidebarMenuButton>

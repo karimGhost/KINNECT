@@ -53,9 +53,9 @@ if(!user){
   // }, [user]);
 
   // 🔹 Guard until BOTH auth and firestore profile are ready
-   if(!loading && !userData){
-    return <ExtraSignupPage />;
-  }
+  //  if(!loading && !userData){
+  //   return <ExtraSignupPage />;
+  // }
 
   if( !loading &&  !user?.email){
   
@@ -63,10 +63,10 @@ if(!user){
 
   }
 
-  if(!loading && !userData.familyId){
-     return <FamilySearch onFamilyCreated={refreshUserData} />;
+  // if(!loading && !userData.familyId){
+  //    return <FamilySearch onFamilyCreated={refreshUserData} />;
  
-  }
+  // }
   if (loading || !userData) {
             console.log("fam", loading)
 

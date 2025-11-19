@@ -46,11 +46,13 @@ const MemberCard = ({
   keyd,
   onRemove,
   isAdminView,
+  member,
 }: {
   user: User;
   keyd: string;
   onRemove?: () => void;
   isAdminView: boolean;
+  member:any;
 }) => (
   <div
     key={keyd}
@@ -67,9 +69,9 @@ const MemberCard = ({
           {user.fullName.slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
-      <div>
+      <div onClick={() => window.location.href=`/dashboard/profile/${member?.uid}` }>
         {user?.isAdmin && <i className="text-xs text-primary">Created by</i>}
-        <p className="font-semibold">{user.fullName}</p>
+        <p  className="font-semibold">{user.fullName}</p>
         <p className="text-sm text-muted-foreground">
           {user.location.city}, {user.location.country}
         </p>
@@ -77,7 +79,7 @@ const MemberCard = ({
     </div>
     <div className="flex items-center gap-2">
       {user.isAdmin && <Badge variant="outline">Admin</Badge>}
-      {isAdminView && !user.isAdmin && (
+      {isAdminView  &&   (
         <Button
           size="sm"
           variant="outline"
@@ -92,6 +94,8 @@ const MemberCard = ({
 );
 // ✅ Request Card with full details created by
 const PendingRequestCard = ({
+  member,
+  setPreviewUrl,
   user,
   familyId,
   familyName,
@@ -101,6 +105,8 @@ const PendingRequestCard = ({
   showConfirmDialog,
   setShowConfirmDialog,
 }: {
+  member:any;
+  setPreviewUrl:any;
   user: any;
   familyId: string,
   familyName: string,
@@ -110,6 +116,7 @@ const PendingRequestCard = ({
   showConfirmDialog: boolean;
   setShowConfirmDialog: any;
 }) => (
+
   <div
     key={keyd}
     className="flex items-center justify-between p-4 border-b last:border-b-0 animate-in fade-in-50 duration-500"
@@ -123,8 +130,8 @@ const PendingRequestCard = ({
               {user.fullName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <p className="font-semibold">{user.fullName}</p>
+          <div onClick={() => window.location.href=`/dashboard/profile/${member.uid}`}>
+            <p  className="font-semibold">{user.fullName}</p>
             <p className="text-sm text-muted-foreground">
               Wants to join the family
             </p>
@@ -175,6 +182,7 @@ const PendingRequestCard = ({
               <div className="flex flex-wrap gap-2 mt-2">
                 {user.images.map((url: string, idx: Key) => (
                   <img
+                    onClick={() => setPreviewUrl(url)}
                     key={idx}
                     src={url}
                     alt="request attachment"
@@ -213,7 +221,10 @@ export default function MembersPage() {
 const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 const [Adding,setAdding] = useState(false);
 const [Removing,setRemoving] = useState(false);
-const {toast} = useToast()
+const {toast} = useToast();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+
 //    useEffect(() => {
 // console.log("pendingMembers", requests.filter((m) => !m?.approved)) 
 //   },[requests])
@@ -344,6 +355,21 @@ const route = useRouter()
       {/* ✅ Family profile card */}
      <FamilyProfile familyId={userData?.familyId} approvedMembers={approvedMembers}/>
 
+
+
+     {previewUrl && (
+  <div
+    onClick={() => setPreviewUrl(null)}
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+  >
+  
+      <img src={previewUrl} alt="preview" className="max-h-full max-w-full rounded" />
+  
+  </div>
+     
+    )
+  }
+
       <div className="grid md:grid-cols-2 gap-8 items-start mt-4">
         {/* ✅ Approved members */}
         <Card>
@@ -359,9 +385,9 @@ const route = useRouter()
   {approvedMembers
     .filter((i) => i.isAdmin)
     .map((member) => (
-                    <div key={member.id} style={{cursor:"pointer"}} onClick={() => route.push(`/dashboard/profile/${member.uid}`)}>
+                    <div key={member.id} style={{cursor:"pointer"}} >
 
-                              <MemberCard  keyd={member.id} user={member} isAdminView={false} />
+                              <MemberCard  keyd={member.id} user={member} isAdminView={user?.uid !== member.AdminId} member={member} />
       </div>
 
     ))}
@@ -370,9 +396,9 @@ const route = useRouter()
   {approvedMembers
     .filter((i) => !i.isAdmin)
     .map((member) => (
- <div key={member.id} style={{cursor:"pointer"}} onClick={() => route.push(`/dashboard/profile/${member.uid}`)}>
+ <div key={member.id} style={{cursor:"pointer"}} >
 
-                              <MemberCard  keyd={member.id} user={member} isAdminView={false} />
+                              <MemberCard  keyd={member.id} user={member}  isAdminView={user?.uid !== member.AdminId}  member={member}/>
       </div>    ))}
 </>
           </CardContent>
@@ -389,11 +415,11 @@ const route = useRouter()
             <CardContent className="p-0">
               {pendingMembers ? (
                 pendingMembers.map((member) => (
-                                <div key={member.id} style={{cursor:"pointer"}} onClick={() => route.push(`/dashboard/profile/${member.uid}`)}>
+                                <div key={member.id} style={{cursor:"pointer"}} >
 
 
 
-                  <PendingRequestCard familyId={userData.familyId} familyName={userData.familyName}
+                  <PendingRequestCard member={member} setPreviewUrl={setPreviewUrl} familyId={userData.familyId} familyName={userData.familyName}
    
  showConfirmDialog={showConfirmDialog} setShowConfirmDialog={setShowConfirmDialog} acceptRequest={acceptFamilyRequest} reject={rejectRequest} keyd={member.id} user={member} />
                   </div>

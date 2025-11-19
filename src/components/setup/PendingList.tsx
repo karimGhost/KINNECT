@@ -14,7 +14,6 @@ export default function PendingList() {
     {pendingMembers.length > 0   &&
      <span
       className="
-        absolute -top-2 -right-9 
          bg-accent text-white 
         text-[10px] font-bold 
         rounded-full px-1.5 py-0.2
