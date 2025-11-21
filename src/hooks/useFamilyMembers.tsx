@@ -7,6 +7,7 @@ import {
   onSnapshot,
   doc,
   getDoc,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { User } from "@/types";
@@ -29,7 +30,12 @@ export function useFamilyMembers(familyId: string) {
     });
 
     // 🔹 Realtime listener for join requests (subcollection)
-    const reqRef = collection(db, "families", familyId, "requests");
+    // const reqRef = collection(db, "families", familyId, "requests");
+    const reqRef = query(
+  collection(db, "families", familyId, "requests"),
+  orderBy("requestedAt", "desc")     // or "desc" if you want newest first
+);
+
     const unsubscribeRequests = onSnapshot(reqRef, async (snap) => {
       if (snap.empty) {
         setRequests([]);
@@ -44,13 +50,15 @@ export function useFamilyMembers(familyId: string) {
     if (!uDoc.exists()) return null;
 
     return {
-      id: reqDoc.id,             // request document id
+      isid: reqDoc.id,             // request document id
+  
       userId,                    // requester uid
       requestMessage,
       images,                    // array of Cloudinary URLs
       requestedAt: requestedAt?.toDate ? requestedAt.toDate() : requestedAt,
       ...uDoc.data(),            // spread user profile (name, country, etc.)
-    } as User & {
+    } as any & {
+      isid:any;
       id: string;
       userId: string;
       requestMessage: string;
@@ -58,9 +66,9 @@ export function useFamilyMembers(familyId: string) {
       requestedAt: Date | null;
     };
   })
-);
 
-      setRequests(users.filter(Boolean) as User[]);
+);
+      setRequests(users.filter(Boolean) as any[]);
     });
 
     setLoading(false);
@@ -71,5 +79,5 @@ export function useFamilyMembers(familyId: string) {
     };
   }, [familyId]);
 
-  return { members, requests, loading };
+  return { members, requests, loading,setRequests , setMembers};
 }

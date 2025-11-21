@@ -21,6 +21,7 @@ import {
   doc,
   setDoc,
   deleteDoc,
+  arrayRemove,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { User } from "@/types";
@@ -43,14 +44,18 @@ import { useAuthState } from "react-firebase-hooks/auth";
 // ✅ Single Member card
 const MemberCard = ({
   user,
+  familyId,
+  familyName,
   keyd,
   onRemove,
   isAdminView,
   member,
 }: {
   user: User;
+  familyId: any;
+  familyName: any;
   keyd: string;
-  onRemove?: () => void;
+  onRemove:any ;
   isAdminView: boolean;
   member:any;
 }) => (
@@ -83,7 +88,8 @@ const MemberCard = ({
         <Button
           size="sm"
           variant="outline"
-          onClick={onRemove}
+                      onClick={() => onRemove(familyId,familyName, user.id, user.uid, user.fullName)}
+
           className="text-destructive border-destructive"
         >
           Remove
@@ -96,6 +102,7 @@ const MemberCard = ({
 const PendingRequestCard = ({
   member,
   setPreviewUrl,
+  requests,
   user,
   familyId,
   familyName,
@@ -107,6 +114,7 @@ const PendingRequestCard = ({
 }: {
   member:any;
   setPreviewUrl:any;
+  requests:any
   user: any;
   familyId: string,
   familyName: string,
@@ -153,7 +161,7 @@ const PendingRequestCard = ({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Join Request</DialogTitle>
-          <DialogDescription>
+          <DialogDescription style={{whiteSpace:"break-spaces"}}>
             Review details of {user.fullName}&apos;s request.
           </DialogDescription>
         </DialogHeader>
@@ -170,7 +178,7 @@ const PendingRequestCard = ({
           {user.requestMessage && (
             <div>
               <b>Message:</b>
-              <p className="mt-1 p-2 border rounded bg-muted">
+              <p style={{width:"fit-content"}} className="mt-1 p-2 border rounded bg-muted">
                 {user.requestMessage}
               </p>
             </div>
@@ -200,12 +208,12 @@ const PendingRequestCard = ({
           </Button>
           <Button
             variant="destructive"
-            onClick={() => reject(familyId,familyName, user.id, user.uid, user.fullName)}
+            onClick={() => reject(familyId,familyName, user.isid, user.uid, user.fullName)}
           >
             Reject
           </Button>
           <Button
-            onClick={() => acceptRequest(familyId,FamilyName, user.id, user.uid, user.fullName)}
+            onClick={() => acceptRequest(familyId,familyName, user.isid, user.uid, user.fullName)}
           >
             Confirm
           </Button>
@@ -217,7 +225,7 @@ const PendingRequestCard = ({
 
 export default function MembersPage() {
  const {userData} = useAuth();
-      const { members,requests, loading  } = useFamilyMembers(userData?.familyId );
+      const { members,requests, loading ,setRequests, setMembers } = useFamilyMembers(userData?.familyId );
 const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 const [Adding,setAdding] = useState(false);
 const [Removing,setRemoving] = useState(false);
@@ -225,7 +233,7 @@ const {toast} = useToast();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
 
-//    useEffect(() => {
+//    useEffect(() => { 
 // console.log("pendingMembers", requests.filter((m) => !m?.approved)) 
 //   },[requests])
   // // Assume current
@@ -282,6 +290,9 @@ const route = useRouter()
       description: `${username} rejected & removed from family ${familyName}`,
       variant: "destructive",
     }); 
+    setRequests(prev =>
+  prev.filter(i => i.id !== userId)
+);
     // console.log(`✅ User ${userId} rejected & removed from family ${familyId}`);
   } catch (err) {
      toast({
@@ -293,6 +304,49 @@ const route = useRouter()
     throw err;
   }
 } 
+
+async function  onRemove(familyId: string,familyName:string, requestId: string, userId: string,username:string) {
+  try {
+ const familyRef = doc(db, "families", familyId);
+await updateDoc(familyRef, {
+  members: arrayRemove(userId),
+});
+    // 2️⃣ Update user profile → approved + linked
+    const userRef = doc(db, "users", userId);
+    await setDoc(
+      userRef,
+      {
+        familyId: "",
+        approved: false,
+        inFamily: "", 
+        familyName:""
+      },
+      { merge: true }
+    );
+
+ 
+ toast({
+      title: "Removed ",
+      description: `${username} rejected & removed from family ${familyName}`,
+      variant: "destructive",
+    }); 
+
+    setMembers(prev =>
+  prev.filter(i => i.id !== userId)
+);
+    // console.log(`✅ User ${userId} rejected & removed from family ${familyId}`);
+  } catch (err) {
+     toast({
+      title: "Error failed  ",
+      description: `removing ${username}  from ${familyName} Requests failed try again after sometime! `,
+      variant: "destructive",
+    }); 
+    // console.error("❌ rejecting  family request:", err);
+    throw err;
+  }
+} 
+
+
 
 
  async function acceptFamilyRequest(familyId: string,familyName:string, requestId: string, userId: string, username:string) {
@@ -312,7 +366,7 @@ const route = useRouter()
         approved: true,
         welcome: true,
         familyName: familyName,
-        inFamily: familyId, // optional, since you had this field
+        inFamily: familyId, // optional, since you had this field remove
       },
       { merge: true }
     );
@@ -326,6 +380,9 @@ const route = useRouter()
       description: `${username} has been approved and  added to  ${familyName} family`,
       variant: "default",
     }); 
+setRequests(prev =>
+  prev.filter(i => i.id !== userId)
+);
     // console.log(`✅ User ${userId} approved & added to family ${familyId}`);
   } catch (err) {
       toast({
@@ -387,18 +444,18 @@ const route = useRouter()
     .map((member) => (
                     <div key={member.id} style={{cursor:"pointer"}} >
 
-                              <MemberCard  keyd={member.id} user={member} isAdminView={user?.uid !== member.AdminId} member={member} />
+                              <MemberCard onRemove={onRemove} familyId={userData.familyId} familyName={userData.familyName} keyd={member.id} user={member} isAdminView={user?.uid !== member.AdminId} member={member} />
       </div>
 
     ))}
 
-  {/* Then normal members */}
+  {/* Then normal members remove*/}
   {approvedMembers
     .filter((i) => !i.isAdmin)
     .map((member) => (
  <div key={member.id} style={{cursor:"pointer"}} >
 
-                              <MemberCard  keyd={member.id} user={member}  isAdminView={user?.uid !== member.AdminId}  member={member}/>
+                              <MemberCard onRemove={onRemove} familyId={userData.familyId} familyName={userData.familyName} keyd={member.id} user={member}  isAdminView={user?.uid !== member.AdminId}  member={member}/>
       </div>    ))}
 </>
           </CardContent>
@@ -419,7 +476,7 @@ const route = useRouter()
 
 
 
-                  <PendingRequestCard member={member} setPreviewUrl={setPreviewUrl} familyId={userData.familyId} familyName={userData.familyName}
+                  <PendingRequestCard member={member} setPreviewUrl={setPreviewUrl} familyId={userData.familyId} familyName={userData.familyName} requests={requests}
    
  showConfirmDialog={showConfirmDialog} setShowConfirmDialog={setShowConfirmDialog} acceptRequest={acceptFamilyRequest} reject={rejectRequest} keyd={member.id} user={member} />
                   </div>
